@@ -1,0 +1,2560 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ICP备案批量查询系统</title>
+    <!-- Bootstrap 5 本地文件 -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons 本地文件 -->
+    <link rel="stylesheet" href="/static/css/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --accent: #0EA5E9;
+            --accent-dark: #0284C7;
+            --accent-light: #E0F2FE;
+            --bg-page: #F1F5F9;
+            --bg-card: #FFFFFF;
+            --bg-dark: #0F172A;
+            --bg-dark-secondary: #1E293B;
+            --text: #0F172A;
+            --text-secondary: #334155;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --border-light: #F1F5F9;
+            --success: #10B981;
+            --success-light: #D1FAE5;
+            --danger: #EF4444;
+            --danger-light: #FEE2E2;
+            --warning: #F59E0B;
+            --warning-light: #FEF3C7;
+            --radius: 10px;
+            --radius-sm: 6px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-page);
+            color: var(--text);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            line-height: 1.6;
+        }
+
+        /* ── Top Navbar ── */
+        .topbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 56px;
+            background: var(--bg-dark);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            z-index: 1000;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .topbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-right: 36px;
+            text-decoration: none;
+        }
+
+        .topbar-brand h3 {
+            color: #F8FAFC;
+            font-size: 15px;
+            font-weight: 600;
+            margin: 0;
+            letter-spacing: -0.02em;
+        }
+
+        .topbar-brand .brand-icon {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, var(--accent), #38BDF8);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 15px;
+            box-shadow: 0 2px 6px rgba(14,165,233,0.4);
+        }
+
+        .topbar-nav {
+            display: flex;
+            align-items: center;
+            gap: 1px;
+            list-style: none;
+            margin: 0; padding: 0;
+            background: var(--bg-dark-secondary);
+            border-radius: 8px;
+            padding: 3px;
+        }
+
+        .topbar-nav .nav-item { margin: 0; }
+
+        .topbar-nav .nav-link {
+            color: rgba(248,250,252,0.55);
+            padding: 6px 14px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 450;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .topbar-nav .nav-link:hover {
+            color: #F8FAFC;
+            background: rgba(255,255,255,0.08);
+        }
+
+        .topbar-nav .nav-link.active {
+            color: #F8FAFC;
+            background: rgba(255,255,255,0.12);
+            font-weight: 500;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+        }
+
+        .topbar-nav .nav-link i { font-size: 15px; opacity: 0.7; }
+        .topbar-nav .nav-link.active i { opacity: 1; }
+
+        .topbar-github {
+            color: #94A3B8;
+            display: flex;
+            align-items: center;
+            margin-left: 16px;
+            padding: 0 4px;
+            transition: color 0.2s;
+        }
+        .topbar-github:hover { color: #F8FAFC; }
+
+        /* ── Mobile Menu ── */
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: #F8FAFC;
+            font-size: 22px;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+        }
+
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 56px;
+            left: 0;
+            right: 0;
+            background: var(--bg-dark);
+            padding: 8px;
+            z-index: 999;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .mobile-menu.show {
+            display: block;
+        }
+
+        .mobile-menu .nav-link {
+            color: rgba(248,250,252,0.7);
+            padding: 12px 16px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            font-size: 15px;
+            gap: 10px;
+            transition: all 0.15s ease;
+        }
+
+        .mobile-menu .nav-link:hover,
+        .mobile-menu .nav-link.active {
+            color: #F8FAFC;
+            background: rgba(255,255,255,0.08);
+        }
+
+        .mobile-menu .nav-link i { font-size: 18px; }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 56px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15,23,42,0.5);
+            z-index: 998;
+        }
+
+        .sidebar-overlay.show { display: block; }
+
+        /* ── Main Content ── */
+        .main-content {
+            margin-top: 56px;
+            padding: 28px 32px;
+            min-height: calc(100vh - 56px);
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* ── Pages ── */
+        .page { display: none; }
+        .page.active {
+            display: block;
+            animation: fadeIn 0.25s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Section Headers ── */
+        .main-content h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: -0.02em;
+        }
+
+        .main-content h2 i {
+            font-size: 18px;
+            color: var(--accent);
+        }
+
+        /* ── Cards ── */
+        .card {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 16px;
+            background: var(--bg-card);
+            transition: box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-header {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 20px;
+            font-weight: 550;
+            font-size: 13px;
+            color: var(--text-muted);
+            border-radius: var(--radius) var(--radius) 0 0 !important;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .card-header i { font-size: 14px; }
+
+        .card-body { padding: 20px; }
+
+        .card-footer {
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            border-radius: 0 0 var(--radius) var(--radius) !important;
+        }
+
+        /* ── Buttons ── */
+        .btn-primary {
+            background: var(--accent);
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 9px 22px;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(14,165,233,0.3);
+        }
+
+        .btn-primary:hover,
+        .btn-primary:focus {
+            background: var(--accent-dark);
+            box-shadow: 0 4px 12px rgba(14,165,233,0.35);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:active { transform: translateY(0); }
+
+        .btn-outline-secondary {
+            border-radius: var(--radius-sm);
+            padding: 9px 22px;
+            font-weight: 500;
+            font-size: 14px;
+            border-color: var(--border);
+            color: var(--text-muted);
+            transition: all 0.15s ease;
+        }
+
+        .btn-outline-secondary:hover {
+            border-color: var(--text-muted);
+            color: var(--text);
+            background: var(--bg-page);
+        }
+
+        .btn-outline-success { color: var(--success); border-color: rgba(16,185,129,0.4); }
+        .btn-outline-success:hover { background: var(--success); color: white; border-color: var(--success); }
+
+        .btn-outline-info { color: var(--accent); border-color: rgba(14,165,233,0.4); }
+        .btn-outline-info:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+        .btn-outline-danger { color: var(--danger); border-color: rgba(239,68,68,0.4); }
+        .btn-outline-danger:hover { background: var(--danger); color: white; border-color: var(--danger); }
+
+        .btn-success { background: var(--success); border-color: var(--success); border-radius: var(--radius-sm); }
+        .btn-info { background: var(--accent); border-color: var(--accent); border-radius: var(--radius-sm); color: white; }
+
+        .btn-sm { padding: 4px 10px; font-size: 12px; border-radius: 5px; }
+
+        /* ── Forms ── */
+        .form-control,
+        .form-select {
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            padding: 9px 14px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            color: var(--text);
+            background: var(--bg-card);
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
+            outline: none;
+        }
+
+        .form-control::placeholder { color: #94A3B8; }
+
+        .form-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        /* ── Query page search bar ── */
+        #query-page .card { max-width: 100%; }
+
+        .query-search-bar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .query-search-bar .form-select {
+            width: 130px;
+            min-width: 130px;
+            max-width: 130px;
+            flex-shrink: 0;
+        }
+
+        .query-search-bar .form-control {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .query-search-bar .btn {
+            white-space: nowrap;
+            flex-shrink: 0;
+            padding-left: 24px;
+            padding-right: 24px;
+        }
+
+        /* ── Tables ── */
+        .table { margin-bottom: 0; }
+
+        .table thead th {
+            background: var(--bg-page);
+            border-bottom: 1px solid var(--border);
+            font-weight: 550;
+            font-size: 13px;
+            color: var(--text-muted);
+            padding: 10px 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .table tbody td {
+            padding: 10px 16px;
+            vertical-align: middle;
+            font-size: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .table tbody tr:last-child td { border-bottom: none; }
+
+        .table tbody tr:hover td { border-bottom-color: var(--border); }
+
+        /* ── Progress ── */
+        .progress {
+            height: 24px;
+            border-radius: 12px;
+            background: var(--border);
+        }
+
+        .progress-bar {
+            background: var(--accent);
+            border-radius: 12px;
+            font-weight: 550;
+            font-size: 12px;
+        }
+
+        /* ── Badges ── */
+        .badge {
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-weight: 500;
+            font-size: 12px;
+            letter-spacing: 0.01em;
+        }
+
+        .badge.bg-primary { background: var(--accent) !important; }
+        .badge.bg-success { background: var(--success) !important; }
+        .badge.bg-danger  { background: var(--danger) !important; }
+        .badge.bg-info    { background: #8B5CF6 !important; }
+        .badge.bg-warning { background: var(--warning) !important; color: #fff !important; }
+
+        /* ── Pagination ── */
+        .pagination { margin-top: 16px; }
+
+        .page-link {
+            border-radius: 6px;
+            margin: 0 2px;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 13px;
+            padding: 6px 12px;
+            transition: all 0.15s ease;
+        }
+
+        .page-link:hover {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .page-item.active .page-link {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        /* ── Alerts ── */
+        .alert { border: none; border-radius: var(--radius); padding: 12px 16px; font-size: 14px; }
+
+        /* ── Spinner ── */
+        .spinner-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15,23,42,0.25);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(2px);
+        }
+
+        .spinner-overlay.show { display: flex; }
+
+        .spinner-content {
+            background: white;
+            padding: 24px 32px;
+            border-radius: var(--radius);
+            text-align: center;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        /* ── Toast ── */
+        .toast-container { z-index: 11000 !important; }
+
+        .toast {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            font-size: 14px;
+        }
+
+        .toast-header { border-bottom: 1px solid var(--border); }
+
+        /* ── Stat Card ── */
+        .stat-card {
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-dark-secondary) 100%);
+            color: #F8FAFC;
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .stat-card h3 { font-size: 32px; font-weight: 700; margin: 8px 0; }
+        .stat-card p { opacity: 0.7; margin: 0; font-size: 14px; }
+
+        /* ── Empty State ── */
+        .empty-state {
+            text-align: center;
+            padding: 56px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 44px;
+            margin-bottom: 12px;
+            color: var(--border);
+            display: block;
+        }
+
+        .empty-state p { font-size: 14px; }
+
+        /* ── Clickable/Copyable cell ── */
+        .copyable {
+            cursor: pointer;
+            position: relative;
+            border-radius: 4px;
+            transition: background 0.15s ease;
+            user-select: none;
+        }
+
+        .copyable:hover {
+            background: rgba(14,165,233,0.08);
+        }
+
+        .copyable:active {
+            background: rgba(14,165,233,0.15);
+        }
+
+        .copyable::after {
+            content: '';
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            margin-left: 4px;
+            vertical-align: middle;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='9' width='13' height='13' rx='2' ry='2'/%3E%3Cpath d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+        }
+
+        .copyable:hover::after { opacity: 0.6; }
+        .copyable.copied::after {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2310B981' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+            opacity: 1;
+        }
+
+        .copy-hint {
+            position: absolute;
+            bottom: calc(100% + 4px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-dark);
+            color: #F8FAFC;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        .copyable.copied .copy-hint { opacity: 1; }
+
+        /* ── About Page ── */
+        #about-page h4 { font-size: 18px; font-weight: 600; }
+        #about-page h5 { font-size: 15px; font-weight: 600; color: var(--text); }
+        #about-page ul { padding-left: 20px; }
+        #about-page li { font-size: 14px; color: var(--text-muted); line-height: 1.8; }
+        #about-page p { font-size: 14px; color: var(--text-muted); line-height: 1.7; }
+        #about-page code {
+            background: var(--bg-page);
+            border: 1px solid var(--border);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        #about-page hr { border-color: var(--border); }
+        #about-page a { color: var(--accent); text-decoration: none; }
+        #about-page a:hover { text-decoration: underline; }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .topbar-nav { display: none; }
+            .menu-toggle { display: block; }
+
+            .main-content {
+                padding: 20px 16px;
+            }
+
+            .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .card {
+                max-width: 100% !important;
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+
+            .card-footer .d-flex {
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+
+            .card-footer .d-flex > div {
+                width: 100% !important;
+                justify-content: center !important;
+            }
+
+            .d-flex.gap-2 {
+                flex-direction: column !important;
+            }
+
+            .d-flex.gap-2 .btn { width: 100% !important; }
+
+            .form-control, .form-select {
+                font-size: 16px;
+            }
+
+            .progress { height: 28px !important; }
+
+            h2 { font-size: 1.3rem !important; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Top Navbar -->
+    <nav class="topbar" id="topbar">
+        <button class="menu-toggle" onclick="toggleSidebar()">
+            <i class="bi bi-list"></i>
+        </button>
+
+        <a class="topbar-brand" href="#">
+            <span class="brand-icon"><i class="bi bi-shield-check"></i></span>
+            <h3>ICP查询</h3>
+        </a>
+
+        <ul class="topbar-nav">
+            <li class="nav-item">
+                <a class="nav-link active" href="#" onclick="showPage('query', event)">
+                    <i class="bi bi-search"></i><span>查询</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" onclick="showPage('batch', event)">
+                    <i class="bi bi-list-check"></i><span>批量查询</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" onclick="showPage('history', event)">
+                    <i class="bi bi-clock-history"></i><span>查询历史</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" onclick="showPage('batch-history', event)">
+                    <i class="bi bi-archive"></i><span>批量任务</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" onclick="showPage('about', event)">
+                    <i class="bi bi-info-circle"></i><span>关于</span>
+                </a>
+            </li>
+        </ul>
+        <a class="topbar-github" href="https://github.com/imxw/icp-query-go" target="_blank" rel="noopener" title="GitHub">
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+    </nav>
+
+    <!-- Mobile dropdown menu -->
+    <div class="mobile-menu" id="mobile-menu">
+        <a class="nav-link active" href="#" onclick="showPage('query', event)">
+            <i class="bi bi-search"></i><span>查询</span>
+        </a>
+        <a class="nav-link" href="#" onclick="showPage('batch', event)">
+            <i class="bi bi-list-check"></i><span>批量查询</span>
+        </a>
+        <a class="nav-link" href="#" onclick="showPage('history', event)">
+            <i class="bi bi-clock-history"></i><span>查询历史</span>
+        </a>
+        <a class="nav-link" href="#" onclick="showPage('batch-history', event)">
+            <i class="bi bi-archive"></i><span>批量任务</span>
+        </a>
+        <a class="nav-link" href="#" onclick="showPage('about', event)">
+            <i class="bi bi-info-circle"></i><span>关于</span>
+        </a>
+    </div>
+
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <!-- 单个查询页面 -->
+        <div id="query-page" class="page active">
+            <h2 class="mb-4"><i class="bi bi-search"></i> ICP备案查询</h2>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="query-search-bar d-none d-md-flex">
+                        <select id="query-type" class="form-select">
+                            <option value="web">域名</option>
+                            <option value="app">App</option>
+                            <option value="mapp">小程序</option>
+                            <option value="kapp">快应用</option>
+                            <option value="bweb">违规域名</option>
+                            <option value="bapp">违规App</option>
+                            <option value="bmapp">违规小程序</option>
+                            <option value="bkapp">违规快应用</option>
+                        </select>
+                        <input type="text" id="query-keyword" class="form-control"
+                            placeholder="请输入域名、程序名称、备案主体或备案号">
+                        <button type="button" class="btn btn-primary" onclick="performQuery()">
+                            <i class="bi bi-search"></i> 查询
+                        </button>
+                    </div>
+                    <!-- Mobile stacked layout -->
+                    <div class="d-md-none">
+                        <div class="mb-2">
+                            <select id="query-type-mobile" class="form-select">
+                                <option value="web">域名</option>
+                                <option value="app">App</option>
+                                <option value="mapp">小程序</option>
+                                <option value="kapp">快应用</option>
+                                <option value="bweb">违规域名</option>
+                                <option value="bapp">违规App</option>
+                                <option value="bmapp">违规小程序</option>
+                                <option value="bkapp">违规快应用</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <input type="text" id="query-keyword-mobile" class="form-control"
+                                placeholder="请输入域名、程序名称、备案主体或备案号">
+                        </div>
+                        <button type="button" class="btn btn-primary w-100" onclick="performQueryMobile()">
+                            <i class="bi bi-search"></i> 查询
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 查询结果 -->
+            <div id="query-result-container" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-table"></i> 查询结果
+                    </div>
+                    <div class="card-body">
+                        <div id="query-result-table"></div>
+                    </div>
+                    <div class="card-footer bg-white">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap"
+                            style="min-height: 40px;">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-muted">每页</span>
+                                    <input type="number" id="query-pagesize" class="form-control form-control-sm"
+                                        value="10" min="1" max="50" style="width: 70px;">
+                                    <span class="text-muted">条</span>
+                                </div>
+                                <div id="query-info" class="text-muted"></div>
+                            </div>
+                            <div id="query-pagination"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 批量查询页面 -->
+        <div id="batch-page" class="page">
+            <h2 class="mb-4"><i class="bi bi-list-check"></i> 批量查询</h2>
+
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-gear"></i> 批量查询设置
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3 g-3">
+                        <div class="col-12 col-sm-6 col-md-4">
+                            <label class="form-label">查询类型</label>
+                            <select id="batch-type" class="form-select">
+                                <option value="web">域名</option>
+                                <option value="app">App</option>
+                                <option value="mapp">小程序</option>
+                                <option value="kapp">快应用</option>
+                                <option value="bweb">违规域名</option>
+                                <option value="bapp">违规App</option>
+                                <option value="bmapp">违规小程序</option>
+                                <option value="bkapp">违规快应用</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4">
+                            <label class="form-label">并发数量</label>
+                            <input type="number" id="batch-querynum" class="form-control" value="20" min="1" max="50">
+                            <small class="text-muted">建议10-30</small>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">查询内容（一行一个）</label>
+                        <textarea id="batch-content" class="form-control" rows="10"
+                            placeholder="请输入要查询的内容，每行一个&#10;例如：&#10;baidu.com&#10;sina.com.cn&#10;qq.com"></textarea>
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="button" class="btn btn-primary px-4" onclick="startBatchQuery()">
+                            <i class="bi bi-play-fill"></i> 开始批量查询
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" onclick="stopBatchQuery()">
+                            <i class="bi bi-stop-fill"></i> 终止任务
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="exportBatchData('excel')" title="导出Excel">
+                            <i class="bi bi-file-earmark-excel"></i> Excel
+                        </button>
+                        <button type="button" class="btn btn-outline-info" onclick="exportBatchData('json')" title="导出JSON">
+                            <i class="bi bi-filetype-json"></i> JSON
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 进度显示 -->
+            <div id="batch-progress-container" style="display: none;">
+                <div class="card mt-3" style="max-width: 1200px; margin: 0 auto;">
+                    <div class="card-header">
+                        <i class="bi bi-hourglass-split"></i> 任务进度
+                    </div>
+                    <div class="card-body">
+                        <p id="batch-progress-text" class="mb-3 text-center">准备开始...</p>
+                        <div class="progress" style="height: 25px;">
+                            <div id="batch-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated"
+                                role="progressbar" style="width: 0%">0%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 历史记录页面 -->
+        <div id="history-page" class="page">
+            <h2 class="mb-4"><i class="bi bi-clock-history"></i> 历史记录</h2>
+
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-table"></i> 查询历史
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3 g-2">
+                        <div class="col-12 col-md-4">
+                            <input type="text" id="history-search" class="form-control" placeholder="搜索查询内容..."
+                                onkeypress="if(event.key === 'Enter') searchHistory()">
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-3">
+                            <select id="history-filter" class="form-select" onchange="loadHistory(1, parseInt(document.getElementById('history-pagesize').value) || 20);">
+                                <option value="">全部类型</option>
+                                <option value="web">域名</option>
+                                <option value="app">App</option>
+                                <option value="mapp">小程序</option>
+                                <option value="kapp">快应用</option>
+                                <option value="bweb">违规域名</option>
+                                <option value="bapp">违规App</option>
+                                <option value="bmapp">违规小程序</option>
+                                <option value="bkapp">违规快应用</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-5 text-end">
+                            <button type="button" class="btn btn-primary me-2" onclick="searchHistory()">
+                                <i class="bi bi-search"></i> 搜索
+                            </button>
+                            <button type="button" class="btn btn-success me-2" onclick="exportHistory('excel')" title="导出Excel">
+                                <i class="bi bi-file-earmark-excel"></i> Excel
+                            </button>
+                            <button type="button" class="btn btn-info me-2" onclick="exportHistory('json')" title="导出JSON">
+                                <i class="bi bi-filetype-json"></i> JSON
+                            </button>
+                            <button type="button" class="btn btn-outline-danger" onclick="clearHistory()">
+                                <i class="bi bi-trash"></i> 清空
+                            </button>
+                        </div>
+                    </div>
+                    <div id="history-table-container"></div>
+                    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-muted">每页</span>
+                                <input type="number" id="history-pagesize" class="form-control form-control-sm"
+                                    value="20" min="1" max="100" style="width: 70px;"
+                                    onchange="loadHistory(1, parseInt(this.value))">
+                                <span class="text-muted">条</span>
+                            </div>
+                            <div id="history-info" class="text-muted"></div>
+                        </div>
+                        <div id="history-pagination"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 批量任务历史页面 -->
+        <div id="batch-history-page" class="page">
+            <h2 class="mb-4"><i class="bi bi-archive"></i> 批量任务历史</h2>
+
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-table"></i> 任务列表
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3 g-2">
+                        <div class="col-12 col-md-4">
+                            <input type="text" id="batch-history-search" class="form-control" placeholder="搜索任务名称..."
+                                onkeypress="if(event.key === 'Enter') searchBatchHistory()">
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-3">
+                            <select id="batch-history-filter" class="form-select" onchange="loadBatchHistory(1, parseInt(document.getElementById('batch-history-pagesize').value) || 20);">
+                                <option value="">全部状态</option>
+                                <option value="running">进行中</option>
+                                <option value="completed">已完成</option>
+                                <option value="failed">失败</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-5 text-end">
+                            <button type="button" class="btn btn-primary me-2" onclick="searchBatchHistory()">
+                                <i class="bi bi-search"></i> 搜索
+                            </button>
+                            <button type="button" class="btn btn-success me-2" onclick="refreshBatchHistory()">
+                                <i class="bi bi-arrow-clockwise"></i> 刷新
+                            </button>
+                        </div>
+                    </div>
+                    <div id="batch-history-table-container"></div>
+                    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-muted">每页</span>
+                                <input type="number" id="batch-history-pagesize" class="form-control form-control-sm"
+                                    value="20" min="1" max="100" style="width: 70px;"
+                                    onchange="loadBatchHistory(1, parseInt(this.value))">
+                                <span class="text-muted">条</span>
+                            </div>
+                            <div id="batch-history-info" class="text-muted"></div>
+                        </div>
+                        <div id="batch-history-pagination"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- 关于页面 -->
+                <div id="about-page" class="page">
+            <h2 class="mb-4"><i class="bi bi-info-circle"></i> 关于</h2>
+
+            <div class="card">
+                <div class="card-body">
+                    <h4>ICP备案查询系统 (Go)</h4>
+                    <p style="color: var(--text-muted); margin: 8px 0 20px;">支持域名、App、小程序、快应用的 ICP 备案与违规查询，批量并发，历史导出。</p>
+                    <hr>
+                    <h5>CLI 命令</h5>
+                    <ul>
+                        <li><code>icpcli query baidu.com</code> — 查询单个域名</li>
+                        <li><code>icpcli query 微信 -t app</code> — 查询 App 备案</li>
+                        <li><code>icpcli batch -f domains.txt -t web</code> — 批量查询</li>
+                        <li><code>icpcli serve</code> — 启动 Web 服务</li>
+                        <li><code>icpcli mcp</code> — 启动 MCP Server</li>
+                    </ul>
+                    <hr>
+                    <p style="margin: 0;"><a href="https://github.com/imxw/icp-query-go" target="_blank" style="display: inline-flex; align-items: center; gap: 6px;"><svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> imxw/icp-query-go</a></p>
+                </div>
+            </div>
+        </div>
+
+    <!-- 加载遮罩 -->
+    <div id="spinner-overlay" class="spinner-overlay">
+        <div class="spinner-content">
+            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mb-0">加载中...</p>
+        </div>
+    </div>
+
+    <!-- Toast 消息提示 -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 11000;">
+        <div id="toast" class="toast" role="alert">
+            <div class="toast-header">
+                <strong class="me-auto" id="toast-title">提示</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toast-body">
+                消息内容
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS 本地文件 -->
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/xlsx.full.min.js"></script>
+    <script>
+        // 全局变量
+        let currentPage = 'query';
+        let currentTask = null;
+        let currentQueryData = null;
+
+        // 切换移动端菜单
+        function toggleSidebar() {
+            const menu = document.getElementById('mobile-menu');
+            const overlay = document.getElementById('sidebar-overlay');
+
+            menu.classList.toggle('show');
+            overlay.classList.toggle('show');
+        }
+
+        // 显示页面
+        function showPage(pageName, event) {
+            // 阻止默认事件，防止页面跳转或刷新
+            if (event) {
+                event.preventDefault();
+            }
+
+            // 隐藏所有页面
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+
+            // 更新导航状态 (topbar + mobile menu)
+            document.querySelectorAll('.topbar-nav .nav-link, .mobile-menu .nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+
+            // 显示选中的页面
+            document.getElementById(pageName + '-page').classList.add('active');
+
+            // 如果有事件对象，更新对应的导航链接状态
+            if (event && event.target) {
+                const navLink = event.target.closest('.nav-link');
+                if (navLink) {
+                    navLink.classList.add('active');
+                }
+            } else {
+                // 如果没有事件对象，通过页面名称找到对应的导航链接
+                document.querySelectorAll('.topbar-nav .nav-link, .mobile-menu .nav-link').forEach(link => {
+                    if (link.getAttribute('onclick') && link.getAttribute('onclick').includes(`'${pageName}'`)) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+
+            currentPage = pageName;
+
+            // 移动端：切换页面后自动关闭菜单
+            if (window.innerWidth <= 768) {
+                const menu = document.getElementById('mobile-menu');
+                const overlay = document.getElementById('sidebar-overlay');
+                menu.classList.remove('show');
+                overlay.classList.remove('show');
+            }
+
+            // 根据页面加载相应数据
+            if (pageName === 'history') {
+                const historyPageSize = parseInt(document.getElementById('history-pagesize')?.value) || 20;
+                loadHistory(1, historyPageSize);
+            } else if (pageName === 'batch-history') {
+                const batchHistoryPageSize = parseInt(document.getElementById('batch-history-pagesize')?.value) || 20;
+                loadBatchHistory(1, batchHistoryPageSize);
+            }
+        }
+
+        // 显示/隐藏加载动画
+        function showLoading(show = true) {
+            const overlay = document.getElementById('spinner-overlay');
+            if (show) {
+                overlay.classList.add('show');
+            } else {
+                overlay.classList.remove('show');
+            }
+        }
+
+        // 显示消息提示
+        function showToast(message, type = 'info', title = '提示') {
+            const toastEl = document.getElementById('toast');
+            const toastBody = document.getElementById('toast-body');
+            const toastTitle = document.getElementById('toast-title');
+            const toast = new bootstrap.Toast(toastEl);
+
+            toastTitle.textContent = title;
+            toastBody.textContent = message;
+
+            // 根据类型设置样式
+            toastEl.className = 'toast';
+            if (type === 'success') {
+                toastEl.classList.add('bg-success', 'text-white');
+                toastTitle.textContent = '成功';
+            } else if (type === 'error') {
+                toastEl.classList.add('bg-danger', 'text-white');
+                toastTitle.textContent = '错误';
+            } else if (type === 'warning') {
+                toastEl.classList.add('bg-warning');
+                toastTitle.textContent = '警告';
+            }
+
+            toast.show();
+        }
+
+        // Click to copy cell text
+        function copyCell(td) {
+            const text = td.textContent.trim();
+            if (!text || text === '-') return;
+            navigator.clipboard.writeText(text).then(() => {
+                td.classList.add('copied');
+                setTimeout(() => td.classList.remove('copied'), 1200);
+            });
+        }
+
+        // HTTP请求封装
+        async function httpRequest(method, url, data = null) {
+            try {
+                showLoading(true);
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
+
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+
+                const response = await fetch(url, options);
+                const result = await response.json();
+
+                showLoading(false);
+                return result;
+            } catch (error) {
+                showLoading(false);
+                throw error;
+            }
+        }
+
+        // 单个查询功能
+        async function performQuery(pageNum = null) {
+            const type = document.getElementById('query-type').value;
+            const keyword = document.getElementById('query-keyword').value.trim();
+            const pageNumInput = pageNum || 1;  // 默认第1页
+            const pageSize = document.getElementById('query-pagesize').value;
+
+            if (!keyword) {
+                showToast('请输入查询内容', 'warning');
+                return;
+            }
+
+            try {
+                const result = await httpRequest('GET',
+                    `/api/query?type=${type}&search=${encodeURIComponent(keyword)}&pageNum=${pageNumInput}&pageSize=${pageSize}`);
+
+                if (result.code === 200) {
+                    displayQueryResult(result.params, type, pageNumInput, pageSize);
+                    showToast('查询成功', 'success');
+                } else {
+                    showToast(result.msg || result.message || '查询失败', 'error');
+                }
+            } catch (error) {
+                showToast('查询出错：' + error.message, 'error');
+            }
+        }
+
+        // 显示查询结果
+        function displayQueryResult(data, type, currentPage = 1, pageSize = 10) {
+            const container = document.getElementById('query-result-container');
+            const tableContainer = document.getElementById('query-result-table');
+            const paginationContainer = document.getElementById('query-pagination');
+
+            if (!data || (data.list && data.list.length === 0) || (Array.isArray(data) && data.length === 0)) {
+                tableContainer.innerHTML = '<div class="empty-state"><i class="bi bi-inbox"></i><p>暂无数据</p></div>';
+                paginationContainer.innerHTML = '';
+                container.style.display = 'block';
+                return;
+            }
+
+            let list;
+            if (Array.isArray(data.list)) {
+                list = data.list;
+            } else if (Array.isArray(data)) {
+                list = data;
+            } else {
+                // Violation queries return a single object, wrap in array
+                list = [data];
+            }
+            let html = '<div class="table-responsive"><table class="table table-sm"><thead><tr>';
+
+            // 根据类型生成表头
+            if (type === 'web') {
+                html += '<th>域名</th><th>主办单位</th><th>备案号</th><th>负责人</th><th>更新时间</th>';
+            } else if (['app', 'mapp', 'kapp'].includes(type)) {
+                html += '<th>名称</th><th>主办单位</th><th>备案号</th><th>负责人</th><th>更新时间</th>';
+            } else if (type === 'bweb') {
+                html += '<th>查询内容</th><th>违规级别</th><th>标题</th>';
+            } else {
+                html += '<th>名称</th><th>主办单位</th><th>违规级别</th><th>违规原因</th>';
+            }
+
+            html += '</tr></thead><tbody>';
+
+            // 生成表格行
+            list.forEach(item => {
+                html += '<tr>';
+                if (type === 'web') {
+                    html += `<td class="copyable" onclick="copyCell(this)" title="点击复制">${item.domain || '-'}</td>`;
+                    html += `<td class="copyable" onclick="copyCell(this)" title="点击复制">${item.unitName || '-'}</td>`;
+                    html += `<td class="copyable" onclick="copyCell(this)" title="点击复制">${item.serviceLicence || '-'}</td>`;
+                    html += `<td>${item.leaderName || '-'}</td>`;
+                    html += `<td>${item.updateRecordTime || '-'}</td>`;
+                } else if (['app', 'mapp', 'kapp'].includes(type)) {
+                    html += `<td class="copyable" onclick="copyCell(this)" title="点击复制">${item.serviceName || '-'}</td>`;
+                    html += `<td class="copyable" onclick="copyCell(this)" title="点击复制">${item.unitName || '-'}</td>`;
+                    html += `<td class="copyable" onclick="copyCell(this)" title="点击复制">${item.serviceLicence || '-'}</td>`;
+                    html += `<td>${item.leaderName || '-'}</td>`;
+                    html += `<td>${item.updateRecordTime || '-'}</td>`;
+                } else if (type === 'bweb') {
+                    html += `<td class="copyable" onclick="copyCell(this)" title="点击复制">${item.domainName || '-'}</td>`;
+                    html += `<td><span class="badge bg-danger">${item.blackListLevel || '-'}</span></td>`;
+                    html += `<td>${item.title || '-'}</td>`;
+                } else {
+                    html += `<td class="copyable" onclick="copyCell(this)" title="点击复制">${item.serviceName || '-'}</td>`;
+                    html += `<td>${item.unitName || '-'}</td>`;
+                    html += `<td><span class="badge bg-danger">${item.blacklistLevel || '-'}</span></td>`;
+                    html += `<td>${item.blacklistReasonContent || item.remark || '-'}</td>`;
+                }
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            tableContainer.innerHTML = html;
+
+            // 判断是否需要显示分页
+            const total = data.total || list.length;
+            const infoContainer = document.getElementById('query-info');
+            
+            // 如果只有一个结果，隐藏所有分页和统计信息
+            if (total === 1) {
+                infoContainer.textContent = '';
+                paginationContainer.innerHTML = '';
+            }
+            // 如果有分页信息且页数大于1，显示分页控件
+            else if (data.pages && data.pages > 1) {
+                const totalPages = data.pages;
+
+                // 显示统计信息（带页码输入框）
+                infoContainer.innerHTML = `共 ${total} 条，第 
+                    <input type="number" class="form-control form-control-sm d-inline-block" 
+                           min="1" max="${totalPages}" value="${currentPage}" 
+                           style="width: 60px; text-align: center;" 
+                           onkeypress="if(event.key === 'Enter') { const page = parseInt(this.value); if(page >= 1 && page <= ${totalPages} && page !== ${currentPage}) performQuery(page); else this.value = ${currentPage}; }"
+                           onblur="const page = parseInt(this.value); if(page >= 1 && page <= ${totalPages} && page !== ${currentPage}) performQuery(page); else this.value = ${currentPage};">
+                    /${totalPages} 页`;
+
+                // 显示分页按钮
+                let paginationHtml = '<ul class="pagination pagination-sm">';
+
+                // 上一页
+                paginationHtml += `<li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="event.preventDefault(); ${currentPage > 1 ? `performQuery(${currentPage - 1})` : ''}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>`;
+
+                // 页码
+                const maxPages = 5;
+                let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+                let endPage = Math.min(totalPages, startPage + maxPages - 1);
+
+                if (endPage - startPage < maxPages - 1) {
+                    startPage = Math.max(1, endPage - maxPages + 1);
+                }
+
+                if (startPage > 1) {
+                    paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="event.preventDefault(); performQuery(1)">1</a></li>`;
+                    if (startPage > 2) {
+                        paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                    paginationHtml += `<li class="page-item ${i == currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="event.preventDefault(); performQuery(${i})">${i}</a>
+                    </li>`;
+                }
+
+                if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) {
+                        paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
+                    paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="event.preventDefault(); performQuery(${totalPages})">${totalPages}</a></li>`;
+                }
+
+                // 下一页
+                paginationHtml += `<li class="page-item ${currentPage == totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="event.preventDefault(); ${currentPage < totalPages ? `performQuery(${parseInt(currentPage) + 1})` : ''}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>`;
+
+                paginationHtml += '</ul>';
+                paginationContainer.innerHTML = paginationHtml;
+            } else {
+                // 多于一个结果但只有一页时，显示统计信息
+                if (total > 1) {
+                    infoContainer.textContent = `共 ${total} 条`;
+                } else {
+                    infoContainer.textContent = '';
+                }
+                paginationContainer.innerHTML = '';
+            }
+
+            container.style.display = 'block';
+        }
+
+        // 批量查询功能
+        async function startBatchQuery() {
+            const content = document.getElementById('batch-content').value.trim();
+            const type = document.getElementById('batch-type').value;
+            const querynum = document.getElementById('batch-querynum').value;
+
+            if (!content) {
+                showToast('请输入查询内容', 'warning');
+                return;
+            }
+
+            const inputList = content.split('\n').filter(line => line.trim() !== '');
+            const timeStamp = new Date().getTime();
+            const taskname = `icp_${type}_${timeStamp}`;
+            currentTask = taskname;
+
+            try {
+                const result = await httpRequest('POST', '/api/batch', {
+                    name: taskname,
+                    type: type,
+                    keywords: inputList,
+                    concurrency: parseInt(querynum),
+                    auto_page: true
+                });
+
+                if (result.code === 200) {
+                    showToast('任务已创建，开始执行', 'success');
+                    document.getElementById('batch-progress-container').style.display = 'block';
+                    monitorBatchTask(taskname, type);
+                } else {
+                    showToast(result.message || '创建任务失败', 'error');
+                }
+            } catch (error) {
+                showToast('创建任务出错：' + error.message, 'error');
+            }
+        }
+
+        // 监控批量任务进度
+        async function monitorBatchTask(taskname, type) {
+            const progressText = document.getElementById('batch-progress-text');
+            const progressBar = document.getElementById('batch-progress-bar');
+
+            while (true) {
+                try {
+                    const result = await fetch(`/api/batch/${taskname}`).then(r => r.json());
+
+                    if (result.code === 404) {
+                        progressText.textContent = '任务不存在或已删除';
+                        break;
+                    }
+
+                    if (result.code === 200) {
+                        const taskData = result.data;
+                        const taskProgress = result.progress;
+                        const completed = taskData.completed_count || 0;
+                        const total = taskData.total_count || 0;
+                        const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+                        progressText.textContent = `任务进度：${completed} / ${total}`;
+                        progressBar.style.width = pct + '%';
+                        progressBar.textContent = pct + '%';
+
+                        if (pct >= 100 || taskData.status === 'completed' || taskData.status === 'cancelled') {
+                            showToast('批量查询已完成', 'success');
+                            currentQueryData = result;
+                            progressBar.classList.remove('progress-bar-animated');
+                            break;
+                        }
+                    }
+                } catch (error) {
+                    console.error('监控任务出错：', error);
+                    break;
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 1500));
+            }
+        }
+
+        // 停止批量查询
+        async function stopBatchQuery() {
+            if (!currentTask) {
+                showToast('没有正在运行的任务', 'warning');
+                return;
+            }
+
+            try {
+                const result = await httpRequest('DELETE', `/api/batch/${currentTask}`);
+
+                if (result.code === 200) {
+                    showToast('任务已终止', 'success');
+                    currentTask = null;
+                    document.getElementById('batch-progress-bar').classList.remove('progress-bar-animated');
+                } else {
+                    showToast(result.message || '终止任务失败', 'error');
+                }
+            } catch (error) {
+                showToast('终止任务出错：' + error.message, 'error');
+            }
+        }
+
+        // 导出批量数据
+        function exportBatchData(format = 'excel') {
+            if (!currentQueryData || !currentQueryData.data) {
+                showToast('没有可导出的数据', 'warning');
+                return;
+            }
+
+            const type = currentQueryData.tasktype;
+            const listArray = currentQueryData.data;
+
+            if (listArray.length === 0) {
+                showToast('没有可导出的数据', 'warning');
+                return;
+            }
+
+            // JSON格式导出 - 直接导出原始数据结构
+            if (format === 'json') {
+                const jsonData = {
+                    task_name: currentTask,
+                    task_type: type,
+                    total_count: listArray.length,
+                    completed_count: currentQueryData.curpro || listArray.length,
+                    query_keywords: currentQueryData.query_keywords || [],  // 包含查询关键词
+                    result: listArray
+                };
+                const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${currentTask || 'batch_export'}_${new Date().getTime()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('导出成功', 'success');
+                return;
+            }
+
+            // Excel格式导出 - 每个查询对象一个sheet
+            const wb = XLSX.utils.book_new();
+
+            // 字段中文映射
+            const fieldMapping = {
+                // Web相关
+                'contentTypeName': '内容类型',
+                'domain': '域名',
+                'domainId': '域名ID',
+                'leaderName': '负责人',
+                'limitAccess': '限制访问',
+                'mainId': '主体ID',
+                'mainLicence': '主体许可证号',
+                'natureName': '单位性质',
+                'serviceId': '服务ID',
+                'serviceLicence': '服务许可证号',
+                'unitName': '主办单位',
+                'updateRecordTime': '更新时间',
+                // App相关
+                'cityId': '城市ID',
+                'countyId': '区县ID',
+                'dataId': '数据ID',
+                'mainUnitAddress': '主体地址',
+                'mainUnitCertNo': '主体证件号',
+                'mainUnitCertType': '主体证件类型',
+                'natureId': '性质ID',
+                'provinceId': '省份ID',
+                'serviceName': '服务名称',
+                'serviceType': '服务类型',
+                'version': '版本',
+                // 违规相关
+                'blacklistLevel': '违规级别'
+            };
+
+            // 遍历每个查询对象，创建独立的sheet
+            const queryKeywords = currentQueryData.query_keywords || [];
+            listArray.forEach((itemList, index) => {
+                if (!itemList || itemList.length === 0) return;
+
+                const firstItem = itemList[0];
+                const headers = Object.keys(firstItem);
+                const headerRow = headers.map(key => fieldMapping[key] || key);
+                const sheetData = [headerRow];
+
+                // 添加该查询对象的所有结果
+                itemList.forEach(item => {
+                    sheetData.push(headers.map(key => item[key] ?? ""));
+                });
+
+                const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+                // 自动调整列宽
+                const colWidths = headers.map((key, idx) => {
+                    const maxLength = Math.max(
+                        headerRow[idx].length,
+                        ...sheetData.slice(1).map(row => String(row[idx] || '').length)
+                    );
+                    return { wch: Math.min(maxLength + 2, 50) };
+                });
+                ws['!cols'] = colWidths;
+
+                // 优先使用查询关键词作为sheet名称
+                let sheetName = '';
+                if (queryKeywords[index]) {
+                    sheetName = queryKeywords[index];
+                } else if (type === 'web' && firstItem.domain) {
+                    sheetName = firstItem.domain;
+                } else if (['app', 'mapp', 'kapp'].includes(type) && firstItem.serviceName) {
+                    sheetName = firstItem.serviceName;
+                } else if (firstItem.unitName) {
+                    sheetName = firstItem.unitName;
+                } else {
+                    sheetName = `查询${index + 1}`;
+                }
+                
+                // Excel sheet名称限制31个字符
+                sheetName = sheetName.substring(0, 31);
+                // 替换非法字符
+                sheetName = sheetName.replace(/[:\\\/\?\*\[\]]/g, '_');
+
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            });
+
+            XLSX.writeFile(wb, `${currentTask || 'batch_export'}_${new Date().getTime()}.xlsx`);
+            showToast('导出成功', 'success');
+        }
+
+        // 加载历史记录
+        async function loadHistory(page = 1, limit = 20) {
+            const type = document.getElementById('history-filter').value;
+            const searchKeyword = document.getElementById('history-search').value.trim();
+            const offset = (page - 1) * limit;
+
+            try {
+                let url = `/api/history?limit=${limit}&offset=${offset}`;
+                if (type) {
+                    url += `&type=${type}`;
+                }
+
+                const result = await httpRequest('GET', url);
+
+                if (result.code === 200) {
+                    let filteredData = result.data;
+                    let filteredTotal = result.total;
+
+                    // 客户端搜索过滤
+                    if (searchKeyword) {
+                        filteredData = result.data.filter(item =>
+                            item.search_keyword.toLowerCase().includes(searchKeyword.toLowerCase())
+                        );
+                        filteredTotal = filteredData.length;
+                    }
+
+                    displayHistory(filteredData, filteredTotal, page, limit);
+                } else {
+                    showToast('加载历史记录失败', 'error');
+                }
+            } catch (error) {
+                showToast('加载历史记录出错：' + error.message, 'error');
+            }
+        }
+
+        // 搜索历史记录
+        function searchHistory() {
+            const pageSize = parseInt(document.getElementById('history-pagesize').value) || 20;
+            loadHistory(1, pageSize);
+        }
+
+        // 导出历史记录
+        async function exportHistory(format = 'excel') {
+            const type = document.getElementById('history-filter').value;
+
+            try {
+                // 获取所有历史记录
+                let url = `/history?limit=10000&offset=0`;
+                if (type) {
+                    url += `&type=${type}`;
+                }
+
+                const result = await httpRequest('GET', url);
+
+                if (result.code === 200 && result.data && result.data.length > 0) {
+                    const typeNames = {
+                        'web': '域名',
+                        'app': 'App',
+                        'mapp': '小程序',
+                        'kapp': '快应用',
+                        'bweb': '违规域名',
+                        'bapp': '违规App',
+                        'bmapp': '违规小程序',
+                        'bkapp': '违规快应用'
+                    };
+
+                    // JSON格式导出
+                    if (format === 'json') {
+                        const jsonData = result.data.map(item => ({
+                            id: item.id,
+                            type: typeNames[item.search_type] || item.search_type,
+                            search_keyword: item.search_keyword,
+                            result_count: item.result_count,
+                            search_time: item.search_time
+                        }));
+                        const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `查询历史_${new Date().getTime()}.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        showToast('导出成功', 'success');
+                        return;
+                    }
+
+                    // Excel格式导出
+                    const data = [['ID', '类型', '查询内容', '结果数', '查询时间']];
+
+                    result.data.forEach(item => {
+                        data.push([
+                            item.id,
+                            typeNames[item.search_type] || item.search_type,
+                            item.search_keyword,
+                            item.result_count,
+                            item.search_time
+                        ]);
+                    });
+
+                    const wb = XLSX.utils.book_new();
+                    const ws = XLSX.utils.aoa_to_sheet(data);
+                    XLSX.utils.book_append_sheet(wb, ws, '查询历史');
+                    XLSX.writeFile(wb, `查询历史_${new Date().getTime()}.xlsx`);
+
+                    showToast('导出成功', 'success');
+                } else {
+                    showToast('暂无数据可导出', 'warning');
+                }
+            } catch (error) {
+                showToast('导出出错：' + error.message, 'error');
+            }
+        }
+
+        // 显示历史记录
+        function displayHistory(historyList, total, page, limit) {
+            const container = document.getElementById('history-table-container');
+
+            if (!historyList || historyList.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="bi bi-inbox"></i><p>暂无历史记录</p></div>';
+                return;
+            }
+
+            const typeNames = {
+                'web': '域名',
+                'app': 'App',
+                'mapp': '小程序',
+                'kapp': '快应用',
+                'bweb': '违规域名',
+                'bapp': '违规App',
+                'bmapp': '违规小程序',
+                'bkapp': '违规快应用'
+            };
+
+            let html = '<div class="table-responsive"><table class="table table-sm"><thead><tr>';
+            html += '<th>ID</th><th>类型</th><th>查询内容</th><th>结果数</th><th>查询时间</th><th>操作</th>';
+            html += '</tr></thead><tbody>';
+
+            historyList.forEach(item => {
+                html += '<tr>';
+                html += `<td>${item.id}</td>`;
+                html += `<td><span class="badge bg-primary">${typeNames[item.search_type] || item.search_type}</span></td>`;
+                html += `<td>${item.search_keyword}</td>`;
+                html += `<td>${item.result_count}</td>`;
+                html += `<td>${item.search_time}</td>`;
+                html += `<td>
+                    <button type="button" class="btn btn-sm btn-outline-success me-1" onclick="exportHistoryItem(${item.id}, 'excel')" title="导出Excel">
+                        <i class="bi bi-file-earmark-excel"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-info me-1" onclick="exportHistoryItem(${item.id}, 'json')" title="导出JSON">
+                        <i class="bi bi-filetype-json"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteHistoryItem(${item.id})" title="删除">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>`;
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+
+            // 生成分页
+            const totalPages = Math.ceil(total / limit);
+            
+            // 显示统计信息（带页码输入框）
+            const infoContainer = document.getElementById('history-info');
+            if (totalPages > 1) {
+                infoContainer.innerHTML = `共 ${total} 条，第 
+                    <input type="number" class="form-control form-control-sm d-inline-block" 
+                           min="1" max="${totalPages}" value="${page}" 
+                           style="width: 60px; text-align: center;" 
+                           onkeypress="if(event.key === 'Enter') { const p = parseInt(this.value); if(p >= 1 && p <= ${totalPages} && p !== ${page}) loadHistory(p, ${limit}); else this.value = ${page}; }"
+                           onblur="const p = parseInt(this.value); if(p >= 1 && p <= ${totalPages} && p !== ${page}) loadHistory(p, ${limit}); else this.value = ${page};">
+                    /${totalPages} 页`;
+            } else {
+                infoContainer.textContent = `共 ${total} 条`;
+            }
+            
+            displayPaginationHistory('history-pagination', page, totalPages, limit);
+        }
+
+        // 查看历史记录详情
+        async function viewHistoryDetail(id) {
+            try {
+                const result = await httpRequest('GET', `/api/history/${id}`);
+
+                if (result.code === 200 && result.data) {
+                    const detail = result.data;
+                    // 设置查询类型和关键词
+                    document.getElementById('query-type').value = detail.search_type;
+                    document.getElementById('query-keyword').value = detail.search_keyword;
+                    // 显示结果
+                    displayQueryResult(detail.result_data, detail.search_type, 1, 10);
+                    showPage('query');
+                    showToast('已加载历史记录详情', 'success');
+                } else {
+                    showToast('加载详情失败', 'error');
+                }
+            } catch (error) {
+                showToast('加载详情出错：' + error.message, 'error');
+            }
+        }
+
+        // 导出单个历史记录
+        async function exportHistoryItem(id, format = 'excel') {
+            try {
+                const result = await httpRequest('GET', `/api/history/${id}`);
+
+                if (result.code === 200 && result.data && result.data.result_data) {
+                    const detail = result.data;
+                    const resultData = detail.result_data;
+
+                    // result_data 直接就是params对象
+                    if (!resultData || !resultData.list || resultData.list.length === 0) {
+                        showToast('该历史记录没有可导出的数据', 'warning');
+                        return;
+                    }
+
+                    const type = detail.search_type;
+                    const listArray = resultData.list;
+
+                    // 如果是JSON格式，直接导出
+                    if (format === 'json') {
+                        const jsonData = {
+                            search_type: detail.search_type,
+                            search_keyword: detail.search_keyword,
+                            result_count: detail.result_count,
+                            search_time: detail.search_time,
+                            data: listArray
+                        };
+                        const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        const typeNames = {
+                            'web': '域名', 'app': 'App', 'mapp': '小程序', 'kapp': '快应用',
+                            'bweb': '违规域名', 'bapp': '违规App', 'bmapp': '违规小程序', 'bkapp': '违规快应用'
+                        };
+                        a.download = `${typeNames[type] || type}_${detail.search_keyword}_${new Date().getTime()}.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        showToast('导出成功', 'success');
+                        return;
+                    }
+
+                    // 字段中文映射
+                    const fieldMapping = {
+                        'contentTypeName': '内容类型',
+                        'domain': '域名',
+                        'domainId': '域名ID',
+                        'leaderName': '负责人',
+                        'limitAccess': '限制访问',
+                        'mainId': '主体ID',
+                        'mainLicence': '主体许可证号',
+                        'natureName': '单位性质',
+                        'serviceId': '服务ID',
+                        'serviceLicence': '服务许可证号',
+                        'unitName': '主办单位',
+                        'updateRecordTime': '更新时间',
+                        'cityId': '城市ID',
+                        'countyId': '区县ID',
+                        'dataId': '数据ID',
+                        'mainUnitAddress': '主体地址',
+                        'mainUnitCertNo': '主体证件号',
+                        'mainUnitCertType': '主体证件类型',
+                        'natureId': '性质ID',
+                        'provinceId': '省份ID',
+                        'serviceName': '服务名称',
+                        'serviceType': '服务类型',
+                        'version': '版本',
+                        'blacklistLevel': '违规级别'
+                    };
+
+                    // 获取第一条数据的所有字段作为表头
+                    const firstItem = listArray[0];
+                    const headers = Object.keys(firstItem);
+
+                    // 生成表头（使用中文映射）
+                    const headerRow = headers.map(key => fieldMapping[key] || key);
+                    const data = [headerRow];
+
+                    // 生成数据行
+                    listArray.forEach(item => {
+                        const row = headers.map(key => item[key] || '');
+                        data.push(row);
+                    });
+
+                    // 使用SheetJS导出
+                    const wb = XLSX.utils.book_new();
+                    const ws = XLSX.utils.aoa_to_sheet(data);
+
+                    // 自动调整列宽
+                    const colWidths = headers.map((key, index) => {
+                        const maxLength = Math.max(
+                            headerRow[index].length,
+                            ...data.slice(1).map(row => String(row[index] || '').length)
+                        );
+                        return { wch: Math.min(maxLength + 2, 50) };
+                    });
+                    ws['!cols'] = colWidths;
+
+                    const typeNames = {
+                        'web': '域名',
+                        'app': 'App',
+                        'mapp': '小程序',
+                        'kapp': '快应用',
+                        'bweb': '违规域名',
+                        'bapp': '违规App',
+                        'bmapp': '违规小程序',
+                        'bkapp': '违规快应用'
+                    };
+
+                    XLSX.utils.book_append_sheet(wb, ws, '查询结果');
+                    XLSX.writeFile(wb, `${typeNames[type] || type}_${detail.search_keyword}_${new Date().getTime()}.xlsx`);
+
+                    showToast('导出成功', 'success');
+                } else {
+                    showToast('该历史记录没有可导出的数据', 'warning');
+                }
+            } catch (error) {
+                showToast('导出出错：' + error.message, 'error');
+            }
+        }
+
+        // 删除历史记录项
+        async function deleteHistoryItem(id) {
+            if (!confirm('确定要删除这条历史记录吗？')) {
+                return;
+            }
+
+            try {
+                const result = await httpRequest('DELETE', `/api/history/${id}`);
+
+                if (result.code === 200) {
+                    showToast('删除成功', 'success');
+                    loadHistory();
+                } else {
+                    showToast(result.message || '删除失败', 'error');
+                }
+            } catch (error) {
+                showToast('删除出错：' + error.message, 'error');
+            }
+        }
+
+        // 清空历史记录
+        async function clearHistory() {
+            const type = document.getElementById('history-filter').value;
+            const msg = type ? `确定要清空所有"${type}"类型的历史记录吗？` : '确定要清空所有历史记录吗？';
+
+            if (!confirm(msg)) {
+                return;
+            }
+
+            try {
+                const result = await httpRequest('DELETE', `/api/history${type ? '?type=' + type : ''}`);
+
+                if (result.code === 200) {
+                    showToast('清空成功', 'success');
+                    loadHistory();
+                } else {
+                    showToast(result.message || '清空失败', 'error');
+                }
+            } catch (error) {
+                showToast('清空出错：' + error.message, 'error');
+            }
+        }
+
+        // ============ 批量任务历史相关 ============
+
+        // 加载批量任务历史
+        async function loadBatchHistory(page = 1, limit = 20) {
+            const status = document.getElementById('batch-history-filter').value;
+            const searchKeyword = document.getElementById('batch-history-search').value.trim();
+            const offset = (page - 1) * limit;
+
+            try {
+                let url = `/api/batch?limit=${limit}&offset=${offset}`;
+                if (status) {
+                    url += `&status=${status}`;
+                }
+
+                const result = await httpRequest('GET', url);
+
+                if (result.code === 200) {
+                    let filteredData = result.data;
+                    let filteredTotal = result.total;
+
+                    // 客户端搜索过滤
+                    if (searchKeyword) {
+                        filteredData = result.data.filter(item =>
+                            item.task_name.toLowerCase().includes(searchKeyword.toLowerCase())
+                        );
+                        filteredTotal = filteredData.length;
+                    }
+
+                    displayBatchHistory(filteredData, filteredTotal, page, limit);
+                } else {
+                    showToast('加载批量任务失败', 'error');
+                }
+            } catch (error) {
+                showToast('加载批量任务出错：' + error.message, 'error');
+            }
+        }
+
+        // 搜索批量任务历史
+        function searchBatchHistory() {
+            const pageSize = parseInt(document.getElementById('batch-history-pagesize').value) || 20;
+            loadBatchHistory(1, pageSize);
+        }
+
+        // 刷新批量任务历史
+        function refreshBatchHistory() {
+            const pageSize = parseInt(document.getElementById('batch-history-pagesize').value) || 20;
+            loadBatchHistory(1, pageSize);
+        }
+
+        // 显示批量任务历史
+        function displayBatchHistory(taskList, total, page, limit) {
+            const container = document.getElementById('batch-history-table-container');
+
+            if (!taskList || taskList.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="bi bi-inbox"></i><p>暂无批量任务记录</p></div>';
+                return;
+            }
+
+            const typeNames = {
+                'web': '域名',
+                'app': 'App',
+                'mapp': '小程序',
+                'kapp': '快应用',
+                'bweb': '违规域名',
+                'bapp': '违规App',
+                'bmapp': '违规小程序',
+                'bkapp': '违规快应用'
+            };
+
+            const statusBadge = {
+                'running': '<span class="badge bg-primary">进行中</span>',
+                'completed': '<span class="badge bg-success">已完成</span>',
+                'failed': '<span class="badge bg-danger">失败</span>'
+            };
+
+            let html = '<div class="table-responsive"><table class="table table-sm"><thead><tr>';
+            html += '<th>任务名称</th><th>类型</th><th>总数</th><th>完成</th><th>成功</th><th>状态</th><th>创建时间</th><th>操作</th>';
+            html += '</tr></thead><tbody>';
+
+            taskList.forEach(item => {
+                const progress = item.total_count > 0 ? Math.round((item.completed_count / item.total_count) * 100) : 0;
+                html += '<tr>';
+                html += `<td>${item.task_name}</td>`;
+                html += `<td><span class="badge bg-info">${typeNames[item.task_type] || item.task_type}</span></td>`;
+                html += `<td>${item.total_count}</td>`;
+                html += `<td>${item.completed_count} (${progress}%)</td>`;
+                html += `<td>${item.success_count}</td>`;
+                html += `<td>${statusBadge[item.status] || item.status}</td>`;
+                html += `<td>${item.create_time}</td>`;
+                html += `<td>`;
+
+                if (item.status === 'completed' && item.result_file) {
+                    html += `<button type="button" class="btn btn-sm btn-outline-success me-1" onclick="exportBatchTask('${item.task_name}', 'excel')" title="导出Excel">
+                        <i class="bi bi-file-earmark-excel"></i>
+                    </button>`;
+                    html += `<button type="button" class="btn btn-sm btn-outline-info me-1" onclick="exportBatchTask('${item.task_name}', 'json')" title="导出JSON">
+                        <i class="bi bi-filetype-json"></i>
+                    </button>`;
+                }
+
+                if (item.status === 'running') {
+                    html += `<button type="button" class="btn btn-sm btn-outline-info me-1" onclick="switchToBatchTask('${item.task_name}')" title="切换">
+                        <i class="bi bi-arrow-right-circle"></i>
+                    </button>`;
+                }
+
+                html += `<button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteBatchTask('${item.task_name}')" title="删除">
+                    <i class="bi bi-trash"></i>
+                </button>`;
+                html += '</td>';
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+
+            // 生成分页
+            const totalPages = Math.ceil(total / limit);
+            
+            // 显示统计信息（带页码输入框）
+            const infoContainer = document.getElementById('batch-history-info');
+            if (totalPages > 1) {
+                infoContainer.innerHTML = `共 ${total} 条，第 
+                    <input type="number" class="form-control form-control-sm d-inline-block" 
+                           min="1" max="${totalPages}" value="${page}" 
+                           style="width: 60px; text-align: center;" 
+                           onkeypress="if(event.key === 'Enter') { const p = parseInt(this.value); if(p >= 1 && p <= ${totalPages} && p !== ${page}) loadBatchHistory(p, ${limit}); else this.value = ${page}; }"
+                           onblur="const p = parseInt(this.value); if(p >= 1 && p <= ${totalPages} && p !== ${page}) loadBatchHistory(p, ${limit}); else this.value = ${page};">
+                    /${totalPages} 页`;
+            } else {
+                infoContainer.textContent = `共 ${total} 条`;
+            }
+            
+            displayPaginationBatchHistory('batch-history-pagination', page, totalPages, limit);
+        }
+
+        // 查看批量任务详情
+        async function viewBatchTaskDetail(taskName) {
+            try {
+                const result = await httpRequest('GET', `/api/batch/${taskName}`);
+
+                if (result.code === 200 && result.data) {
+                    const task = result.data;
+
+                    // 切换到批量查询页面并显示结果
+                    showPage('batch');
+
+                    // 设置当前任务数据
+                    currentQueryData = {
+                        tasktype: task.task_type,
+                        data: []
+                    };
+                    window.taskname = taskName;
+
+                    // 更新进度显示
+                    const progressContainer = document.getElementById('batch-progress-container');
+                    const progressBar = document.getElementById('batch-progress-bar');
+                    const progressText = document.getElementById('batch-progress-text');
+
+                    if (progressContainer && progressBar && progressText) {
+                        progressContainer.style.display = 'block';
+                        progressBar.style.width = '100%';
+                        progressBar.innerText = '100%';
+                        progressText.innerText = `任务: ${taskName} - 已完成 ${task.completed_count}/${task.total_count} (100%)`;
+                    }
+
+                    showToast('已加载任务详情', 'success');
+                } else {
+                    showToast('加载任务详情失败', 'error');
+                }
+            } catch (error) {
+                showToast('加载任务详情出错：' + error.message, 'error');
+            }
+        }
+
+        // 显示批量查询结果
+        function displayBatchResults(dataList, type) {
+            // 将结果数据转换为与displayBatchResult相同的格式
+            if (!dataList || dataList.length === 0) {
+                showToast('暂无结果数据', 'warning');
+                return;
+            }
+
+            // 设置当前查询数据以供导出使用
+            window.currentQueryData = {
+                data: dataList,
+                tasktype: type
+            };
+
+            showToast(`已加载 ${dataList.length} 条结果`, 'success');
+        }
+
+        // 查询批量任务进度
+        async function queryBatchProgress() {
+            if (!window.taskname) {
+                return;
+            }
+
+            try {
+                const result = await httpRequest('GET', `/api/batch/${window.taskname}`);
+
+                if (result.code === 404) {
+                    clearInterval(window.batchQueryInterval);
+                    showToast('任务不存在或已删除', 'error');
+                    return;
+                }
+
+                if (result.code === 200) {
+                    const taskData = result.data;
+                    const taskProgress = result.progress;
+                    const completed = taskData.completed_count || 0;
+                    const total = taskData.total_count || 0;
+                    const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+                    const progressContainer = document.getElementById('batch-progress-container');
+                    const progressText = document.getElementById('batch-progress-text');
+                    const progressBar = document.getElementById('batch-progress-bar');
+
+                    if (progressContainer && progressText && progressBar) {
+                        progressContainer.style.display = 'block';
+                        progressText.textContent = `任务进度：${completed} / ${total}`;
+                        progressBar.style.width = pct + '%';
+                        progressBar.textContent = pct + '%';
+
+                        if (pct >= 100) {
+                            clearInterval(window.batchQueryInterval);
+                            showToast('批量查询已完成', 'success');
+                            currentQueryData = result;
+                            progressBar.classList.remove('progress-bar-animated');
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('查询任务进度出错：', error);
+                clearInterval(window.batchQueryInterval);
+            }
+        }
+
+        // 切换到正在进行的批量任务
+        async function switchToBatchTask(taskName) {
+            window.taskname = taskName;
+            showPage('batch');
+            showToast(`已切换到任务: ${taskName}`, 'success');
+
+            // 开始轮询任务进度
+            if (window.batchQueryInterval) {
+                clearInterval(window.batchQueryInterval);
+            }
+            queryBatchProgress();
+            window.batchQueryInterval = setInterval(queryBatchProgress, 2000);
+        }
+
+        // 导出批量任务结果
+        async function exportBatchTask(taskName, format = 'excel') {
+            try {
+                const result = await httpRequest('GET', `/api/batch/${taskName}`);
+
+                if (result.code === 200 && result.data && result.data.result_data) {
+                    const task = result.data;
+                    const resultData = task.result_data;
+                    const listArray = resultData.result;
+
+                    if (!listArray || listArray.length === 0) {
+                        showToast('该任务没有可导出的数据', 'warning');
+                        return;
+                    }
+
+                    // JSON格式导出 - 直接导出原始数据结构
+                    if (format === 'json') {
+                        const blob = new Blob([JSON.stringify(resultData, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${taskName}_${new Date().getTime()}.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        showToast('导出成功', 'success');
+                        return;
+                    }
+
+                    // Excel格式导出 - 每个查询对象一个sheet
+                    const wb = XLSX.utils.book_new();
+
+                    // 字段中文映射
+                    const fieldMapping = {
+                        'contentTypeName': '内容类型',
+                        'domain': '域名',
+                        'domainId': '域名ID',
+                        'leaderName': '负责人',
+                        'limitAccess': '限制访问',
+                        'mainId': '主体ID',
+                        'mainLicence': '主体许可证号',
+                        'natureName': '单位性质',
+                        'serviceId': '服务ID',
+                        'serviceLicence': '服务许可证号',
+                        'unitName': '主办单位',
+                        'updateRecordTime': '更新时间',
+                        'cityId': '城市ID',
+                        'countyId': '区县ID',
+                        'dataId': '数据ID',
+                        'mainUnitAddress': '主体地址',
+                        'mainUnitCertNo': '主体证件号',
+                        'mainUnitCertType': '主体证件类型',
+                        'natureId': '性质ID',
+                        'provinceId': '省份ID',
+                        'serviceName': '服务名称',
+                        'serviceType': '服务类型',
+                        'version': '版本',
+                        'blacklistLevel': '违规级别'
+                    };
+
+                    // 遍历每个查询对象，创建独立的sheet
+                    const queryKeywords = resultData.query_keywords || [];
+                    listArray.forEach((itemList, index) => {
+                        if (!itemList || itemList.length === 0) return;
+
+                        const firstItem = itemList[0];
+                        const headers = Object.keys(firstItem);
+                        const headerRow = headers.map(key => fieldMapping[key] || key);
+                        const sheetData = [headerRow];
+
+                        // 添加该查询对象的所有结果
+                        itemList.forEach(item => {
+                            sheetData.push(headers.map(key => item[key] ?? ""));
+                        });
+
+                        const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+                        // 自动调整列宽
+                        const colWidths = headers.map((key, idx) => {
+                            const maxLength = Math.max(
+                                headerRow[idx].length,
+                                ...sheetData.slice(1).map(row => String(row[idx] || '').length)
+                            );
+                            return { wch: Math.min(maxLength + 2, 50) };
+                        });
+                        ws['!cols'] = colWidths;
+
+                        // 优先使用查询关键词作为sheet名称
+                        let sheetName = '';
+                        const taskType = resultData.task_type;
+                        if (queryKeywords[index]) {
+                            sheetName = queryKeywords[index];
+                        } else if (taskType === 'web' && firstItem.domain) {
+                            sheetName = firstItem.domain;
+                        } else if (['app', 'mapp', 'kapp'].includes(taskType) && firstItem.serviceName) {
+                            sheetName = firstItem.serviceName;
+                        } else if (firstItem.unitName) {
+                            sheetName = firstItem.unitName;
+                        } else {
+                            sheetName = `查询${index + 1}`;
+                        }
+                        
+                        // Excel sheet名称限制31个字符
+                        sheetName = sheetName.substring(0, 31);
+                        // 替换非法字符
+                        sheetName = sheetName.replace(/[:\\\/\?\*\[\]]/g, '_');
+
+                        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+                    });
+
+                    XLSX.writeFile(wb, `${taskName}_${new Date().getTime()}.xlsx`);
+                    showToast('导出成功', 'success');
+                } else {
+                    showToast('该任务没有可导出的数据', 'warning');
+                }
+            } catch (error) {
+                showToast('导出出错：' + error.message, 'error');
+            }
+        }
+
+        // 删除批量任务
+        async function deleteBatchTask(taskName) {
+            if (!confirm(`确定要删除任务"${taskName}"吗？删除后将无法恢复！`)) {
+                return;
+            }
+
+            try {
+                const result = await httpRequest('DELETE', `/api/batch/${taskName}`);
+
+                if (result.code === 200) {
+                    showToast('删除成功', 'success');
+                    loadBatchHistory();
+                } else {
+                    showToast(result.message || '删除失败', 'error');
+                }
+            } catch (error) {
+                showToast('删除出错：' + error.message, 'error');
+            }
+        }
+
+        // 生成分页组件
+        function displayPagination(containerId, currentPage, totalPages, onPageClick) {
+            const container = document.getElementById(containerId);
+
+            if (totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '<nav><ul class="pagination justify-content-center">';
+
+            // 上一页
+            html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="event.preventDefault(); ${currentPage > 1 ? `(${onPageClick})(${currentPage - 1})` : ''}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>`;
+
+            // 页码
+            const maxPages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+            let endPage = Math.min(totalPages, startPage + maxPages - 1);
+
+            if (endPage - startPage < maxPages - 1) {
+                startPage = Math.max(1, endPage - maxPages + 1);
+            }
+
+            if (startPage > 1) {
+                html += `<li class="page-item"><a class="page-link" href="#" onclick="event.preventDefault(); (${onPageClick})(1)">1</a></li>`;
+                if (startPage > 2) {
+                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="event.preventDefault(); (${onPageClick})(${i})">${i}</a>
+                </li>`;
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+                html += `<li class="page-item"><a class="page-link" href="#" onclick="event.preventDefault(); (${onPageClick})(${totalPages})">${totalPages}</a></li>`;
+            }
+
+            // 下一页
+            html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="event.preventDefault(); ${currentPage < totalPages ? `(${onPageClick})(${currentPage + 1})` : ''}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>`;
+
+            html += '</ul></nav>';
+            container.innerHTML = html;
+        }
+
+        // 生成历史记录分页组件
+        function displayPaginationHistory(containerId, currentPage, totalPages, limit) {
+            const container = document.getElementById(containerId);
+
+            if (totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '<nav><ul class="pagination justify-content-center">';
+
+            // 上一页
+            html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="event.preventDefault(); ${currentPage > 1 ? `loadHistory(${currentPage - 1}, ${limit})` : ''}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>`;
+
+            // 页码
+            const maxPages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+            let endPage = Math.min(totalPages, startPage + maxPages - 1);
+
+            if (endPage - startPage < maxPages - 1) {
+                startPage = Math.max(1, endPage - maxPages + 1);
+            }
+
+            if (startPage > 1) {
+                html += `<li class="page-item"><a class="page-link" href="#" onclick="event.preventDefault(); loadHistory(1, ${limit})">1</a></li>`;
+                if (startPage > 2) {
+                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="event.preventDefault(); loadHistory(${i}, ${limit})">${i}</a>
+                </li>`;
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+                html += `<li class="page-item"><a class="page-link" href="#" onclick="event.preventDefault(); loadHistory(${totalPages}, ${limit})">${totalPages}</a></li>`;
+            }
+
+            // 下一页
+            html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="event.preventDefault(); ${currentPage < totalPages ? `loadHistory(${currentPage + 1}, ${limit})` : ''}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>`;
+
+            html += '</ul></nav>';
+            container.innerHTML = html;
+        }
+
+        // 生成批量任务历史分页组件
+        function displayPaginationBatchHistory(containerId, currentPage, totalPages, limit) {
+            const container = document.getElementById(containerId);
+
+            if (totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '<nav><ul class="pagination justify-content-center">';
+
+            // 上一页
+            html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="event.preventDefault(); ${currentPage > 1 ? `loadBatchHistory(${currentPage - 1}, ${limit})` : ''}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>`;
+
+            // 页码
+            const maxPages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+            let endPage = Math.min(totalPages, startPage + maxPages - 1);
+
+            if (endPage - startPage < maxPages - 1) {
+                startPage = Math.max(1, endPage - maxPages + 1);
+            }
+
+            if (startPage > 1) {
+                html += `<li class="page-item"><a class="page-link" href="#" onclick="event.preventDefault(); loadBatchHistory(1, ${limit})">1</a></li>`;
+                if (startPage > 2) {
+                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="event.preventDefault(); loadBatchHistory(${i}, ${limit})">${i}</a>
+                </li>`;
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+                html += `<li class="page-item"><a class="page-link" href="#" onclick="event.preventDefault(); loadBatchHistory(${totalPages}, ${limit})">${totalPages}</a></li>`;
+            }
+
+            // 下一页
+            html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="event.preventDefault(); ${currentPage < totalPages ? `loadBatchHistory(${currentPage + 1}, ${limit})` : ''}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>`;
+
+            html += '</ul></nav>';
+            container.innerHTML = html;
+        }
+
+        // Mobile query sync
+        function performQueryMobile() {
+            const typeSelect = document.getElementById('query-type-mobile');
+            const keywordInput = document.getElementById('query-keyword-mobile');
+            document.getElementById('query-type').value = typeSelect.value;
+            document.getElementById('query-keyword').value = keywordInput.value;
+            performQuery();
+        }
+
+        // Sync desktop ↔ mobile inputs
+        function syncQueryInputs() {
+            const desktopType = document.getElementById('query-type');
+            const desktopKeyword = document.getElementById('query-keyword');
+            const mobileType = document.getElementById('query-type-mobile');
+            const mobileKeyword = document.getElementById('query-keyword-mobile');
+            if (mobileType && desktopType) {
+                mobileType.value = desktopType.value;
+                mobileType.addEventListener('change', () => { desktopType.value = mobileType.value; });
+            }
+            if (mobileKeyword && desktopKeyword) {
+                mobileKeyword.value = desktopKeyword.value;
+                mobileKeyword.addEventListener('input', () => { desktopKeyword.value = mobileKeyword.value; });
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function () {
+            syncQueryInputs();
+
+            // 绑定回车键查询
+            document.getElementById('query-keyword').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    performQuery();
+                }
+            });
+
+            // 监听窗口大小变化，自动调整侧边栏状态
+            window.addEventListener('resize', function() {
+                const menu = document.getElementById('mobile-menu');
+                const overlay = document.getElementById('sidebar-overlay');
+
+                if (window.innerWidth > 768) {
+                    menu.classList.remove('show');
+                    overlay.classList.remove('show');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

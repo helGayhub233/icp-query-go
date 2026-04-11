@@ -1,0 +1,30 @@
+# Build
+dist/
+icpcli
+icpcli.exe
+
+# Runtime
+results/
+logs/
+*.db
+faile_captcha/
+
+# Config (config.example.yml 作为模板提交)
+config.yml
+config.local.yml
+
+# Claude Code local
+CLAUDE.md
+.claude/settings.local.json
+.mcp.json
+Plans/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
