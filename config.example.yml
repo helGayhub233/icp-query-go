@@ -1,12 +1,15 @@
 # icpcli 完整配置示例
 # 所有字段均可选，复制需要修改的项到 config.yml 即可
-# 也可通过环境变量覆盖，如 ICP_PORT=8080、ICP_TIMEOUT=60
+# 也可通过环境变量覆盖，如 ICP_RATE_LIMIT_QUERY_PER_MIN=20
 
-port: 8080              # HTTP 服务端口
-host: 0.0.0.0           # 监听地址
 timeout: 30             # HTTP 请求超时（秒）
-retry_times: 10         # 验证码重试次数
 concurrency: 5          # 并发详情获取协程数
+
+# MCP 请求节流（防止过度调用 MIIT 接口）
+rate_limit:
+  enabled: true          # 是否启用限流
+  query_per_min: 10     # icp_query 每分钟最大调用次数
+  blacklist_per_min: 5  # icp_blacklist 每分钟最大调用次数
 
 proxy:
   tunnel: ""            # 隧道代理 URL，如 socks5://127.0.0.1:1080
@@ -14,4 +17,3 @@ proxy:
     url: ""             # 代理池 API 地址
     size: 100           # 最大代理数
     ipv6: false         # 启用本地 IPv6 出口
-    ipv6_num: 88        # IPv6 池大小

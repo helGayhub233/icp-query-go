@@ -8,12 +8,12 @@
 
 ### 从 GitHub Release 下载
 
-前往 [Releases](https://github.com/imxw/icp-query-go/releases) 下载对应平台的压缩包，解压后将 `icpcli` 放入 PATH 即可。
+前往 [Releases](https://github.com/helGayhub233/icp-query-go/releases) 下载对应平台的压缩包，解压后将 `icpcli` 放入 PATH 即可。
 
 ### 从源码编译
 
 ```bash
-git clone https://github.com/imxw/icp-query-go.git
+git clone https://github.com/helGayhub233/icp-query-go.git
 cd icp-query-go
 go build -o icpcli .
 ```
@@ -65,6 +65,44 @@ icpcli batch -f domains.txt -t web
 
 # 指定并发数和自动翻页
 icpcli batch -f domains.txt -t web -j 10 --auto-page
+
+# 指定结果输出目录
+icpcli batch -f domains.txt -t web --output-dir ./output
+```
+
+批量查询会创建本地 SQLite 历史库 `icp_history.db`，并将结果写入 `<output-dir>/<task-name>.json`。如果数据库无法初始化，任务会直接失败并返回错误，避免后台任务在无存储状态下运行。
+
+## 配置
+
+默认读取当前目录下的 `config.yml`，也可以通过 `-c` 指定配置文件：
+
+```bash
+icpcli -c /path/to/config.yml query baidu.com
+```
+
+所有配置项都有默认值，示例见 [config.example.yml](config.example.yml)。
+
+```yaml
+timeout: 30
+concurrency: 5
+
+rate_limit:
+  enabled: true
+  query_per_min: 10
+  blacklist_per_min: 5
+
+proxy:
+  tunnel: ""
+  pool:
+    url: ""
+    size: 100
+    ipv6: false
+```
+
+也可以使用 `ICP_` 前缀环境变量覆盖配置，例如：
+
+```bash
+ICP_RATE_LIMIT_QUERY_PER_MIN=20 icpcli mcp
 ```
 
 ### 版本信息
@@ -111,6 +149,34 @@ MCP 提供以下工具：
 | `icp_query` | 备案查询，type: web/app/mapp/kapp |
 | `icp_blacklist` | 违规查询，type: bweb/bapp/bmapp/bkapp |
 | `config_show` | 查看当前配置 |
+
+### MCP 节流设计
+
+MCP Server 默认启用按工具维度的节流，避免 AI Agent 连续调用时过快触发上游限制：
+
+| 工具 | 默认限制 |
+|------|----------|
+| `icp_query` | 10 次/分钟 |
+| `icp_blacklist` | 5 次/分钟 |
+
+实现方式是 `golang.org/x/time/rate` token bucket。每个受限工具有独立 limiter，`burst=1`，因此不会允许瞬时批量请求；达到限制时会返回 MCP 调用错误，请稍后重试。这个设计适合当前 stdio 单进程 MCP Server 场景。它不是跨进程/跨机器的全局限流，也不是严格滑动窗口限流。
+
+如需关闭或调整：
+
+```yaml
+rate_limit:
+  enabled: true
+  query_per_min: 10
+  blacklist_per_min: 5
+```
+
+### 代码结构
+
+核心查询逻辑位于 `internal/beian`：
+
+- `QueryRequest` / `BlacklistRequest` 描述查询入参。
+- `ServiceType` 显式表达网站、App、小程序、快应用类型，避免散落的 magic number。
+- 响应解析集中在 `internal/beian/response.go`，对 `code`、`success`、`params.list`、`params.total` 等字段做显式校验。
 
 ## 免责声明
 

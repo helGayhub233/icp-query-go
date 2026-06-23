@@ -53,11 +53,9 @@ var batchCmd = &cobra.Command{
 		b := beian.New(&batchCfg)
 		db, err := store.New("icp_history.db")
 		if err != nil {
-			slog.Warn("database init failed, results not saved", "error", err)
+			return ExitCodeError(10, "初始化数据库失败: %v", err)
 		}
-		if db != nil {
-			defer db.Close()
-		}
+		defer db.Close()
 
 		tm := task.NewManager(b, db)
 		taskName := "cli_" + time.Now().Format("20060102_150405")
@@ -70,6 +68,7 @@ var batchCmd = &cobra.Command{
 			Concurrency: batchConcurrency,
 			PageSize:    26,
 			AutoPage:    batchAutoPage,
+			OutputDir:   batchOutputDir,
 		})
 		if err != nil {
 			return ExitCodeError(10, "创建任务失败: %v", err)

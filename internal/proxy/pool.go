@@ -17,19 +17,21 @@ import (
 )
 
 const (
-	poolRefreshInterval = 3 * time.Second
-	poolTTL             = 92 * time.Second // (100 - 8) seconds
-	poolCheckTimeout    = 500 * time.Millisecond
+	poolRefreshInterval  = 3 * time.Second
+	poolTTL              = 92 * time.Second // (100 - 8) seconds
+	poolCheckTimeout     = 500 * time.Millisecond
 	poolCheckConcurrency = 20
 )
 
 // Pool manages external HTTP proxy addresses.
 type Pool struct {
-	cfg    *config.Pool
-	cache  *TTLCache[string, time.Time]
-	mu     sync.Mutex
-	client *http.Client
-	stopCh chan struct{}
+	cfg           *config.Pool
+	cache         *TTLCache[string, time.Time]
+	mu            sync.Mutex
+	client        *http.Client
+	stopCh        chan struct{}
+	cleanupStopCh chan struct{}
+	stopOnce      sync.Once
 }
 
 // NewPool creates a proxy pool from configuration.
@@ -53,14 +55,19 @@ func NewPool(cfg *config.Pool) *Pool {
 
 // Start begins the background refresh goroutine.
 func (p *Pool) Start() {
-	p.cache.StartCleanupGoroutine(poolRefreshInterval)
+	p.cleanupStopCh = p.cache.StartCleanupGoroutine(poolRefreshInterval)
 	go p.refreshLoop(poolRefreshInterval)
 	slog.Info("proxy pool started", "interval", poolRefreshInterval, "max", p.cfg.Size)
 }
 
 // Stop signals the background goroutine to stop.
 func (p *Pool) Stop() {
-	close(p.stopCh)
+	p.stopOnce.Do(func() {
+		close(p.stopCh)
+		if p.cleanupStopCh != nil {
+			close(p.cleanupStopCh)
+		}
+	})
 }
 
 // GetProxy returns a random proxy URL from the pool, or empty string if none available.

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/imxw/icp-query-go/internal/captcha"
-	"github.com/spf13/cast"
 )
 
 const (
@@ -57,10 +56,22 @@ func (b *Beian) checkImg(ctx context.Context, proxy string) (*CaptchaResult, err
 		return nil, fmt.Errorf("解析验证码响应失败: %w", err)
 	}
 
-	params, _ := imgResult["params"].(map[string]any)
-	pUUID := cast.ToString(params["uuid"])
-	bigImage := cast.ToString(params["bigImage"])
-	smallImage := cast.ToString(params["smallImage"])
+	params, ok := responseParams(imgResult)
+	if !ok {
+		return nil, fmt.Errorf("验证码响应缺少 params")
+	}
+	pUUID, ok := stringValue(params["uuid"])
+	if !ok {
+		return nil, fmt.Errorf("验证码响应缺少 uuid")
+	}
+	bigImage, ok := stringValue(params["bigImage"])
+	if !ok {
+		return nil, fmt.Errorf("验证码响应缺少 bigImage")
+	}
+	smallImage, ok := stringValue(params["smallImage"])
+	if !ok {
+		return nil, fmt.Errorf("验证码响应缺少 smallImage")
+	}
 
 	// Check for context cancellation before CPU-intensive image matching
 	select {
@@ -106,11 +117,14 @@ func (b *Beian) checkImg(ctx context.Context, proxy string) (*CaptchaResult, err
 
 	slog.Info("checkImage response", "code", checkResult["code"], "msg", checkResult["msg"])
 
-	if !cast.ToBool(checkResult["success"]) {
+	if !ResponseSuccess(checkResult) {
 		return nil, fmt.Errorf("验证码识别失败")
 	}
 
-	sign := cast.ToString(checkResult["params"])
+	sign, ok := stringValue(checkResult["params"])
+	if !ok {
+		return nil, fmt.Errorf("验证结果缺少 sign")
+	}
 	return &CaptchaResult{
 		PUUID:   pUUID,
 		Token:   token,

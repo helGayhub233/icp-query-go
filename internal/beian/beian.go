@@ -13,7 +13,6 @@ import (
 	"github.com/imxw/icp-query-go/internal/config"
 	"github.com/imxw/icp-query-go/internal/netutil"
 	"github.com/imxw/icp-query-go/internal/proxy"
-	"github.com/spf13/cast"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 )
@@ -27,12 +26,71 @@ const (
 	msgChuangyuDun = "当前访问已被创宇盾拦截"
 )
 
-// queryType maps service type index to serviceType value.
-var queryTypes = map[int]int{
-	0: 1, // 网站
-	1: 6, // APP
-	2: 7, // 小程序
-	3: 8, // 快应用
+// ServiceType is the MIIT serviceType value used by ICP query APIs.
+type ServiceType int
+
+const (
+	ServiceTypeWeb     ServiceType = 1
+	ServiceTypeApp     ServiceType = 6
+	ServiceTypeMiniApp ServiceType = 7
+	ServiceTypeKuaiApp ServiceType = 8
+)
+
+func (t ServiceType) valid() bool {
+	switch t {
+	case ServiceTypeWeb, ServiceTypeApp, ServiceTypeMiniApp, ServiceTypeKuaiApp:
+		return true
+	default:
+		return false
+	}
+}
+
+// QueryRequest is the input for a normal ICP query.
+type QueryRequest struct {
+	Name        string
+	ServiceType ServiceType
+	PageNum     int
+	PageSize    int
+	Proxy       string
+}
+
+// BlacklistRequest is the input for a blacklist query.
+type BlacklistRequest struct {
+	Name        string
+	ServiceType ServiceType
+	Proxy       string
+}
+
+// ParseServiceType converts CLI/MCP type names into serviceType values.
+func ParseServiceType(value string) (ServiceType, bool) {
+	switch value {
+	case "web":
+		return ServiceTypeWeb, true
+	case "app":
+		return ServiceTypeApp, true
+	case "mapp":
+		return ServiceTypeMiniApp, true
+	case "kapp":
+		return ServiceTypeKuaiApp, true
+	default:
+		return 0, false
+	}
+}
+
+// ParseBlacklistServiceType converts blacklist type names into serviceType values.
+func ParseBlacklistServiceType(value string) (ServiceType, bool) {
+	switch value {
+	case "bweb":
+		return ServiceTypeWeb, true
+	case "bapp":
+		return ServiceTypeApp, true
+	case "bmapp":
+		return ServiceTypeMiniApp, true
+	case "bkapp":
+		return ServiceTypeKuaiApp, true
+	default:
+		return 0, false
+	}
 }
 
 // Beian handles ICP registration queries.
@@ -112,78 +170,69 @@ type authContext struct {
 	headers map[string]string
 }
 
-// Public query methods — all return (map[string]any, error) for now.
-// P5 note: these will later return typed structs, but the API response
-// from MIIT is dynamic, so map[string]any is pragmatic here.
-
 func (b *Beian) QueryWeb(ctx context.Context, name string, pageNum, pageSize int, proxy string) (map[string]any, error) {
-	return b.autoGet(ctx, name, 0, pageNum, pageSize, proxy, true)
+	return b.Query(ctx, QueryRequest{Name: name, ServiceType: ServiceTypeWeb, PageNum: pageNum, PageSize: pageSize, Proxy: proxy})
 }
 
 func (b *Beian) QueryApp(ctx context.Context, name string, pageNum, pageSize int, proxy string) (map[string]any, error) {
-	return b.autoGet(ctx, name, 1, pageNum, pageSize, proxy, true)
+	return b.Query(ctx, QueryRequest{Name: name, ServiceType: ServiceTypeApp, PageNum: pageNum, PageSize: pageSize, Proxy: proxy})
 }
 
 func (b *Beian) QueryMiniApp(ctx context.Context, name string, pageNum, pageSize int, proxy string) (map[string]any, error) {
-	return b.autoGet(ctx, name, 2, pageNum, pageSize, proxy, true)
+	return b.Query(ctx, QueryRequest{Name: name, ServiceType: ServiceTypeMiniApp, PageNum: pageNum, PageSize: pageSize, Proxy: proxy})
 }
 
 func (b *Beian) QueryKuaiApp(ctx context.Context, name string, pageNum, pageSize int, proxy string) (map[string]any, error) {
-	return b.autoGet(ctx, name, 3, pageNum, pageSize, proxy, true)
+	return b.Query(ctx, QueryRequest{Name: name, ServiceType: ServiceTypeKuaiApp, PageNum: pageNum, PageSize: pageSize, Proxy: proxy})
 }
 
 func (b *Beian) QueryBlackWeb(ctx context.Context, name string, proxy string) (map[string]any, error) {
-	return b.autoGet(ctx, name, 0, 0, 0, proxy, false)
+	return b.QueryBlacklist(ctx, BlacklistRequest{Name: name, ServiceType: ServiceTypeWeb, Proxy: proxy})
 }
 
 func (b *Beian) QueryBlackApp(ctx context.Context, name string, proxy string) (map[string]any, error) {
-	return b.autoGet(ctx, name, 1, 0, 0, proxy, false)
+	return b.QueryBlacklist(ctx, BlacklistRequest{Name: name, ServiceType: ServiceTypeApp, Proxy: proxy})
 }
 
 func (b *Beian) QueryBlackMiniApp(ctx context.Context, name string, proxy string) (map[string]any, error) {
-	return b.autoGet(ctx, name, 2, 0, 0, proxy, false)
+	return b.QueryBlacklist(ctx, BlacklistRequest{Name: name, ServiceType: ServiceTypeMiniApp, Proxy: proxy})
 }
 
 func (b *Beian) QueryBlackKuaiApp(ctx context.Context, name string, proxy string) (map[string]any, error) {
-	return b.autoGet(ctx, name, 3, 0, 0, proxy, false)
+	return b.QueryBlacklist(ctx, BlacklistRequest{Name: name, ServiceType: ServiceTypeKuaiApp, Proxy: proxy})
 }
 
 // --- Core logic ---
 
-func (b *Beian) autoGet(ctx context.Context, name string, sp, pageNum, pageSize int, proxy string, normal bool) (map[string]any, error) {
-	proxy = b.resolveProxy(proxy)
-
-	var data map[string]any
-	var err error
-
-	if normal {
-		data, err = b.getBeian(ctx, name, sp, pageNum, pageSize, proxy)
-	} else {
-		data, err = b.getBlackBeian(ctx, name, sp, proxy)
+func (b *Beian) Query(ctx context.Context, req QueryRequest) (map[string]any, error) {
+	if !req.ServiceType.valid() {
+		return nil, fmt.Errorf("不支持的服务类型: %d", req.ServiceType)
 	}
-
+	data, err := b.getBeian(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("查询失败: %w", err)
 	}
-
-	code, ok := data["code"].(float64)
-	if !ok {
-		return data, nil
-	}
-	if code == 500 {
-		return map[string]any{"code": 122, "message": "工信部服务器异常"}, nil
-	}
-
-	return data, nil
+	return normalizeResponse(data), nil
 }
 
-func (b *Beian) getBeian(ctx context.Context, name string, sp, pageNum, pageSize int, proxy string) (map[string]any, error) {
-	serviceType := queryTypes[sp]
+func (b *Beian) QueryBlacklist(ctx context.Context, req BlacklistRequest) (map[string]any, error) {
+	if !req.ServiceType.valid() {
+		return nil, fmt.Errorf("不支持的服务类型: %d", req.ServiceType)
+	}
+	data, err := b.getBlackBeian(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("查询失败: %w", err)
+	}
+	return normalizeResponse(data), nil
+}
+
+func (b *Beian) getBeian(ctx context.Context, req QueryRequest) (map[string]any, error) {
+	proxy := b.resolveProxy(req.Proxy)
 	info := map[string]any{
-		"pageNum":     pageNum,
-		"pageSize":    pageSize,
-		"unitName":    name,
-		"serviceType": serviceType,
+		"pageNum":     req.PageNum,
+		"pageSize":    req.PageSize,
+		"unitName":    req.Name,
+		"serviceType": req.ServiceType,
 	}
 
 	cr, err := b.checkImg(ctx, proxy)
@@ -219,23 +268,24 @@ func (b *Beian) getBeian(ctx context.Context, name string, sp, pageNum, pageSize
 		return nil, fmt.Errorf("parse query response: %w", err)
 	}
 
-	if sp >= 1 && sp <= 3 {
-		b.fetchDetails(ctx, result, sp, ac, proxy)
+	if req.ServiceType != ServiceTypeWeb {
+		b.fetchDetails(ctx, result, req.ServiceType, ac, proxy)
 	}
 	return result, nil
 }
 
-func (b *Beian) getBlackBeian(ctx context.Context, name string, sp int, proxy string) (map[string]any, error) {
+func (b *Beian) getBlackBeian(ctx context.Context, req BlacklistRequest) (map[string]any, error) {
+	proxy := b.resolveProxy(req.Proxy)
 	info := map[string]any{}
-	if sp == 0 {
-		info["domainName"] = name
+	if req.ServiceType == ServiceTypeWeb {
+		info["domainName"] = req.Name
 	} else {
-		info["serviceName"] = name
-		info["serviceType"] = queryTypes[sp]
+		info["serviceName"] = req.Name
+		info["serviceType"] = req.ServiceType
 	}
 
 	targetURL := blackQueryURL
-	if sp != 0 {
+	if req.ServiceType != ServiceTypeWeb {
 		targetURL = blackAppMiniURL
 	}
 
@@ -276,13 +326,13 @@ func (b *Beian) getBlackBeian(ctx context.Context, name string, sp int, proxy st
 
 // --- Detail fetching ---
 
-func (b *Beian) fetchDetails(ctx context.Context, result map[string]any, sp int, ac *authContext, proxy string) {
-	params, _ := result["params"].(map[string]any)
-	if params == nil {
+func (b *Beian) fetchDetails(ctx context.Context, result map[string]any, serviceType ServiceType, ac *authContext, proxy string) {
+	params, ok := responseParams(result)
+	if !ok {
 		return
 	}
-	items, _ := params["list"].([]any)
-	if len(items) == 0 {
+	items, ok := params["list"].([]any)
+	if !ok || len(items) == 0 {
 		return
 	}
 
@@ -299,7 +349,6 @@ func (b *Beian) fetchDetails(ctx context.Context, result map[string]any, sp int,
 	sem := semaphore.NewWeighted(int64(maxCon))
 	g, gctx := errgroup.WithContext(ctx)
 
-	serviceType := queryTypes[sp]
 	detailedList := make([]any, len(items))
 
 	for i, item := range items {
@@ -317,14 +366,18 @@ func (b *Beian) fetchDetails(ctx context.Context, result map[string]any, sp int,
 			}
 			defer sem.Release(1)
 
-			detail, err := b.getAppAndMiniDetail(gctx, cast.ToString(itemMap["dataId"]), serviceType, ac, proxy)
-			if err != nil || !cast.ToBool(detail["success"]) {
+			dataID, ok := stringValue(itemMap["dataId"])
+			if !ok {
+				detailedList[i] = item
+				return nil
+			}
+			detail, err := b.getAppAndMiniDetail(gctx, dataID, serviceType, ac, proxy)
+			if err != nil || !ResponseSuccess(detail) {
 				slog.Warn("detail fetch failed", "dataId", itemMap["dataId"], "error", err, "response", detail)
 				detailedList[i] = item
 				return nil
 			}
-			dParams, _ := detail["params"].(map[string]any)
-			if dParams != nil {
+			if dParams, ok := responseParams(detail); ok {
 				detailedList[i] = dParams
 			} else {
 				detailedList[i] = item
@@ -341,7 +394,7 @@ func (b *Beian) fetchDetails(ctx context.Context, result map[string]any, sp int,
 	slog.Info("details fetch done", "total", len(detailedList))
 }
 
-func (b *Beian) getAppAndMiniDetail(ctx context.Context, dataID string, serviceType int, ac *authContext, proxy string) (map[string]any, error) {
+func (b *Beian) getAppAndMiniDetail(ctx context.Context, dataID string, serviceType ServiceType, ac *authContext, proxy string) (map[string]any, error) {
 	info := map[string]any{"dataId": dataID, "serviceType": serviceType}
 	body, err := json.Marshal(info)
 	if err != nil {

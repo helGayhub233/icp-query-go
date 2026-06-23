@@ -79,21 +79,16 @@ func (s *Server) handleICPQuery(ctx context.Context, req *mcp.CallToolRequest) (
 
 	slog.Info("MCP icp_query", "name", args.Name, "type", args.Type)
 
-	var data map[string]any
-	var err error
-
-	switch args.Type {
-	case "web":
-		data, err = s.beian.QueryWeb(ctx, args.Name, args.Page, args.PageSize, "")
-	case "app":
-		data, err = s.beian.QueryApp(ctx, args.Name, args.Page, args.PageSize, "")
-	case "mapp":
-		data, err = s.beian.QueryMiniApp(ctx, args.Name, args.Page, args.PageSize, "")
-	case "kapp":
-		data, err = s.beian.QueryKuaiApp(ctx, args.Name, args.Page, args.PageSize, "")
-	default:
+	serviceType, ok := beian.ParseServiceType(args.Type)
+	if !ok {
 		return nil, fmt.Errorf("unsupported type: %s", args.Type)
 	}
+	data, err := s.beian.Query(ctx, beian.QueryRequest{
+		Name:        args.Name,
+		ServiceType: serviceType,
+		PageNum:     args.Page,
+		PageSize:    args.PageSize,
+	})
 
 	if err != nil {
 		return &mcp.CallToolResult{
@@ -126,21 +121,14 @@ func (s *Server) handleICPBlacklist(ctx context.Context, req *mcp.CallToolReques
 
 	slog.Info("MCP icp_blacklist", "name", args.Name, "type", args.Type)
 
-	var data map[string]any
-	var err error
-
-	switch args.Type {
-	case "bweb":
-		data, err = s.beian.QueryBlackWeb(ctx, args.Name, "")
-	case "bapp":
-		data, err = s.beian.QueryBlackApp(ctx, args.Name, "")
-	case "bmapp":
-		data, err = s.beian.QueryBlackMiniApp(ctx, args.Name, "")
-	case "bkapp":
-		data, err = s.beian.QueryBlackKuaiApp(ctx, args.Name, "")
-	default:
+	serviceType, ok := beian.ParseBlacklistServiceType(args.Type)
+	if !ok {
 		return nil, fmt.Errorf("unsupported type: %s", args.Type)
 	}
+	data, err := s.beian.QueryBlacklist(ctx, beian.BlacklistRequest{
+		Name:        args.Name,
+		ServiceType: serviceType,
+	})
 
 	if err != nil {
 		return &mcp.CallToolResult{
@@ -160,18 +148,19 @@ func (s *Server) handleICPBlacklist(ctx context.Context, req *mcp.CallToolReques
 
 func (s *Server) handleConfigShow(_ context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	cfgData := map[string]any{
-		"port":        s.cfg.Port,
-		"host":        s.cfg.Host,
 		"timeout":     s.cfg.Timeout,
-		"retry_times": s.cfg.RetryTimes,
 		"concurrency": s.cfg.Concurrency,
+		"rate_limit": map[string]any{
+			"enabled":           s.cfg.RateLimit.Enabled,
+			"query_per_min":     s.cfg.RateLimit.QueryPerMin,
+			"blacklist_per_min": s.cfg.RateLimit.BlacklistPerMin,
+		},
 		"proxy": map[string]any{
 			"tunnel": s.cfg.Proxy.Tunnel,
 			"pool": map[string]any{
-				"url":     s.cfg.Proxy.Pool.URL,
-				"size":    s.cfg.Proxy.Pool.Size,
-				"ipv6":    s.cfg.Proxy.Pool.IPv6,
-				"ipv6Num": s.cfg.Proxy.Pool.IPv6Num,
+				"url":  s.cfg.Proxy.Pool.URL,
+				"size": s.cfg.Proxy.Pool.Size,
+				"ipv6": s.cfg.Proxy.Pool.IPv6,
 			},
 		},
 	}

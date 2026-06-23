@@ -50,24 +50,21 @@ var queryCmd = &cobra.Command{
 
 		ctx := cmd.Context()
 
-		switch queryType {
-		case "web":
-			data, err = b.QueryWeb(ctx, keyword, queryPage, querySize, queryProxy)
-		case "app":
-			data, err = b.QueryApp(ctx, keyword, queryPage, querySize, queryProxy)
-		case "mapp":
-			data, err = b.QueryMiniApp(ctx, keyword, queryPage, querySize, queryProxy)
-		case "kapp":
-			data, err = b.QueryKuaiApp(ctx, keyword, queryPage, querySize, queryProxy)
-		case "bweb":
-			data, err = b.QueryBlackWeb(ctx, keyword, queryProxy)
-		case "bapp":
-			data, err = b.QueryBlackApp(ctx, keyword, queryProxy)
-		case "bmapp":
-			data, err = b.QueryBlackMiniApp(ctx, keyword, queryProxy)
-		case "bkapp":
-			data, err = b.QueryBlackKuaiApp(ctx, keyword, queryProxy)
-		default:
+		if serviceType, ok := beian.ParseServiceType(queryType); ok {
+			data, err = b.Query(ctx, beian.QueryRequest{
+				Name:        keyword,
+				ServiceType: serviceType,
+				PageNum:     queryPage,
+				PageSize:    querySize,
+				Proxy:       queryProxy,
+			})
+		} else if serviceType, ok := beian.ParseBlacklistServiceType(queryType); ok {
+			data, err = b.QueryBlacklist(ctx, beian.BlacklistRequest{
+				Name:        keyword,
+				ServiceType: serviceType,
+				Proxy:       queryProxy,
+			})
+		} else {
 			return fmt.Errorf("不支持的查询类型: %s (可选: web, app, mapp, kapp, bweb, bapp, bmapp, bkapp)", queryType)
 		}
 
@@ -80,8 +77,8 @@ var queryCmd = &cobra.Command{
 		enc.SetIndent("", "  ")
 		enc.Encode(data)
 
-		code, _ := data["code"].(float64)
-		if code != 0 && code != 200 {
+		code, ok := beian.ResponseCode(data)
+		if ok && code != 0 && code != 200 {
 			return ExitCodeError(10, "查询失败: code=%v", code)
 		}
 

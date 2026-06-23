@@ -13,18 +13,9 @@ import (
 
 	"github.com/imxw/icp-query-go/internal/beian"
 	"github.com/imxw/icp-query-go/internal/store"
-	"github.com/spf13/cast"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 )
-
-// queryTypeIndex maps type string to beian query method index.
-var queryTypeIndex = map[string]int{
-	"web":  0,
-	"app":  1,
-	"mapp": 2,
-	"kapp": 3,
-}
 
 // Progress holds the current progress of a running task.
 type Progress struct {
@@ -63,6 +54,7 @@ type CreateRequest struct {
 	Concurrency int      `json:"concurrency"` // max concurrent queries (default 5, max 20)
 	PageSize    int      `json:"page_size"`   // results per page (default 10, max 26)
 	AutoPage    bool     `json:"auto_page"`   // fetch all pages until empty
+	OutputDir   string   `json:"output_dir"`  // directory for result JSON files
 }
 
 // Create starts a new batch query task.
@@ -73,13 +65,16 @@ func (m *Manager) Create(ctx context.Context, req CreateRequest) error {
 	if len(req.Keywords) == 0 {
 		return fmt.Errorf("查询关键词不能为空")
 	}
+	if m.db == nil {
+		return fmt.Errorf("任务存储未初始化")
+	}
 
 	// Check for duplicate
 	if _, loaded := m.running.Load(req.Name); loaded {
 		return fmt.Errorf("任务 %q 已在运行中", req.Name)
 	}
 
-	sp, ok := queryTypeIndex[req.Type]
+	serviceType, ok := beian.ParseServiceType(req.Type)
 	if !ok {
 		return fmt.Errorf("不支持的查询类型: %s (可选: web, app, mapp, kapp)", req.Type)
 	}
@@ -95,6 +90,9 @@ func (m *Manager) Create(ctx context.Context, req CreateRequest) error {
 	}
 	if req.PageSize > 26 {
 		req.PageSize = 26
+	}
+	if req.OutputDir == "" {
+		req.OutputDir = "results"
 	}
 
 	// Create DB record
@@ -114,7 +112,7 @@ func (m *Manager) Create(ctx context.Context, req CreateRequest) error {
 
 	m.running.Store(req.Name, rt)
 
-	go m.runTask(taskCtx, rt, req, sp)
+	go m.runTask(taskCtx, rt, req, serviceType)
 
 	return nil
 }
@@ -156,7 +154,7 @@ func (m *Manager) Remove(name string) {
 }
 
 // runTask executes the batch query in the background.
-func (m *Manager) runTask(ctx context.Context, rt *runningTask, req CreateRequest, sp int) {
+func (m *Manager) runTask(ctx context.Context, rt *runningTask, req CreateRequest, serviceType beian.ServiceType) {
 	defer close(rt.done)
 	defer m.running.Delete(req.Name)
 
@@ -179,7 +177,7 @@ func (m *Manager) runTask(ctx context.Context, rt *runningTask, req CreateReques
 			}
 			defer sem.Release(1)
 
-			results, err := m.queryOne(gctx, keyword, sp, req.PageSize, req.AutoPage)
+			results, err := m.queryOne(gctx, keyword, serviceType, req.PageSize, req.AutoPage)
 			if err != nil {
 				slog.Warn("batch query failed", "keyword", keyword, "error", err)
 				m.updateProgress(rt, 1, 0)
@@ -213,8 +211,8 @@ func (m *Manager) runTask(ctx context.Context, rt *runningTask, req CreateReques
 	// Save results to JSON file
 	var resultFile string
 	if len(allResults) > 0 {
-		path := filepath.Join("results", req.Name+".json")
-		if err := os.MkdirAll("results", 0755); err != nil {
+		path := filepath.Join(req.OutputDir, req.Name+".json")
+		if err := os.MkdirAll(req.OutputDir, 0755); err != nil {
 			slog.Error("create results dir failed", "error", err)
 		} else {
 			data, err := json.MarshalIndent(allResults, "", "  ")
@@ -251,42 +249,31 @@ func (m *Manager) runTask(ctx context.Context, rt *runningTask, req CreateReques
 		"completed", completed, "success", success, "results", len(allResults))
 }
 
-func (m *Manager) queryOne(ctx context.Context, keyword string, sp, pageSize int, autoPage bool) ([]map[string]any, error) {
+func (m *Manager) queryOne(ctx context.Context, keyword string, serviceType beian.ServiceType, pageSize int, autoPage bool) ([]map[string]any, error) {
 	var allItems []map[string]any
 	page := 1
 
 	for {
-		var data map[string]any
-		var err error
-
-		// Use the appropriate query method based on type index
-		switch sp {
-		case 0:
-			data, err = m.beian.QueryWeb(ctx, keyword, page, pageSize, "")
-		case 1:
-			data, err = m.beian.QueryApp(ctx, keyword, page, pageSize, "")
-		case 2:
-			data, err = m.beian.QueryMiniApp(ctx, keyword, page, pageSize, "")
-		case 3:
-			data, err = m.beian.QueryKuaiApp(ctx, keyword, page, pageSize, "")
-		}
-
+		data, err := m.beian.Query(ctx, beian.QueryRequest{
+			Name:        keyword,
+			ServiceType: serviceType,
+			PageNum:     page,
+			PageSize:    pageSize,
+		})
 		if err != nil {
 			return allItems, fmt.Errorf("query keyword %q page %d: %w", keyword, page, err)
 		}
 
-		code := cast.ToFloat64(data["code"])
+		code, ok := beian.ResponseCode(data)
+		if !ok {
+			return allItems, fmt.Errorf("query returned invalid code for keyword %q", keyword)
+		}
 		if code != 200 && code != 0 {
 			return allItems, fmt.Errorf("query returned code %v for keyword %q", code, keyword)
 		}
 
-		params, _ := data["params"].(map[string]any)
-		if params == nil {
-			break
-		}
-
-		list, _ := params["list"].([]any)
-		if len(list) == 0 {
+		list, ok := beian.ResponseList(data)
+		if !ok || len(list) == 0 {
 			break
 		}
 
@@ -300,7 +287,10 @@ func (m *Manager) queryOne(ctx context.Context, keyword string, sp, pageSize int
 			break
 		}
 
-		total := cast.ToInt(params["total"])
+		total, ok := beian.ResponseTotal(data)
+		if !ok {
+			break
+		}
 		if total <= len(allItems) {
 			break
 		}

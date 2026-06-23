@@ -37,16 +37,15 @@ func init() {
 // envKeys maps viper config keys to their env var names.
 // viper requires explicit BindEnv for reliable env var → Unmarshal behavior.
 var envKeys = []string{
-	"port",
-	"host",
 	"timeout",
-	"retry_times",
 	"concurrency",
+	"rate_limit.enabled",
+	"rate_limit.query_per_min",
+	"rate_limit.blacklist_per_min",
 	"proxy.tunnel",
 	"proxy.pool.url",
 	"proxy.pool.size",
 	"proxy.pool.ipv6",
-	"proxy.pool.ipv6_num",
 }
 
 // loadConfig reads and validates the configuration. Returns error instead of calling os.Exit.

@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
-
-	"github.com/spf13/cast"
 )
 
 const (
@@ -60,8 +58,14 @@ func (b *Beian) getToken(ctx context.Context, proxy string) (string, map[string]
 		return "", nil, fmt.Errorf("invalid token response")
 	}
 
-	token := cast.ToString(params["bussiness"])
-	expire := cast.ToFloat64(params["expire"])
+	token, ok := stringValue(params["bussiness"])
+	if !ok {
+		return "", nil, fmt.Errorf("invalid token response: missing bussiness")
+	}
+	expire, ok := numberValue(params["expire"])
+	if !ok {
+		return "", nil, fmt.Errorf("invalid token response: missing expire")
+	}
 
 	b.tokenMu.Lock()
 	b.token = token
