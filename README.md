@@ -4,31 +4,6 @@
 
 原生支持 AI 集成：内置 MCP Server 可被 Claude、Cursor 等 AI Agent 直接调用。
 
-Inspired by [ICP_Query](https://github.com/HG-ha/ICP_Query)（Python 版）。
-
-## 效果展示
-
-<table>
-<tr>
-<td align="center"><b>CLI 查询</b></td>
-<td align="center"><b>AI Agent 查询（MCP）</b></td>
-</tr>
-<tr>
-<td><img width="696" alt="CLI 查询 baidu.com 备案信息" src="https://github.com/user-attachments/assets/179bce32-9272-495c-8c56-d3e79c9cb4b5" /></td>
-<td><img width="1341" alt="Claude 通过 MCP 工具查询 qq.com 备案" src="https://github.com/user-attachments/assets/3132d9ad-b1d7-4f1c-9835-ecdba4db5e3d" /></td>
-</tr>
-</table>
-
-
-## 功能特性
-
-- 单条/批量 ICP 备案查询
-- 违规域名、App、小程序、快应用查询
-- **MCP Server** — AI Agent 可直接调用备案查询能力
-- 代理池支持（本地 IPv6 / 隧道代理 / API 提取）
-- 自动验证码识别与重试
-- 纯 Go 实现，跨平台编译
-
 ## 安装
 
 ### 从 GitHub Release 下载
