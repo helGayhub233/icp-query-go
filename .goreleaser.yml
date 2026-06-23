@@ -34,7 +34,6 @@ archives:
       - config.example.yml
       - README.md
       - LICENSE
-      - .claude/skills/icp-query/SKILL.md
 
 checksum:
   name_template: "checksums.txt"

@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <code>icpcli</code> 是一个纯 Go 实现的 ICP 备案查询工具，支持 CLI 单条查询、批量查询和 MCP Server，可用于网站、App、小程序、快应用备案信息以及违规黑名单查询。
+  <code>icpcli</code> 是一个纯 Go 实现的 ICP 备案查询工具，用于网站、App、小程序、快应用备案信息以及违规黑名单查询。
 </p>
 
 ## 功能特性
