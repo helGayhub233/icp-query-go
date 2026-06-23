@@ -30,6 +30,13 @@ func (b *Beian) checkImg(ctx context.Context, proxy string) (*CaptchaResult, err
 		return nil, fmt.Errorf("获取token失败: %w", err)
 	}
 
+	// Check for context cancellation before making the next request
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
 	// Request captcha image
 	clientUID := generateClientUID()
 	uidBody, err := json.Marshal(map[string]any{"clientUid": clientUID})
@@ -55,6 +62,13 @@ func (b *Beian) checkImg(ctx context.Context, proxy string) (*CaptchaResult, err
 	bigImage := cast.ToString(params["bigImage"])
 	smallImage := cast.ToString(params["smallImage"])
 
+	// Check for context cancellation before CPU-intensive image matching
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
 	// Match slider
 	start := time.Now()
 	matchOK, offsetX, matchErr := captcha.MatchSliderOffset(smallImage, bigImage)
@@ -65,6 +79,13 @@ func (b *Beian) checkImg(ctx context.Context, proxy string) (*CaptchaResult, err
 		return nil, fmt.Errorf("滑块匹配失败")
 	}
 	slog.Info("slider matched", "x", offsetX, "elapsed", time.Since(start).Round(time.Millisecond))
+
+	// Check for context cancellation before submitting the result
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
 
 	// Submit slider result
 	checkData, err := json.Marshal(map[string]any{"key": pUUID, "value": fmt.Sprintf("%d", offsetX)})

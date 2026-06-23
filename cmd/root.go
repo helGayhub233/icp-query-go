@@ -17,7 +17,7 @@ var rootCmd = &cobra.Command{
 	Use:   "icpcli",
 	Short: "ICP备案查询工具",
 	Long: `ICP备案查询工具 - 支持网站、APP、小程序、快应用备案查询。
-	支持 CLI 查询、HTTP API 服务、MCP Server 三种运行模式。`,
+	支持 CLI 查询和 MCP Server 两种运行模式。`,
 	SilenceUsage:  true,
 	SilenceErrors: false,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {

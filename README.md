@@ -2,7 +2,7 @@
 
 纯 Go 实现的工信部 ICP 备案查询工具，支持域名、App、小程序、快应用的备案查询与违规查询。
 
-原生支持 AI 集成：内置 MCP Server 可被 Claude、Cursor 等 AI Agent 直接调用，附带 Claude Code Skill 实现开箱即用的智能备案查询体验。
+原生支持 AI 集成：内置 MCP Server 可被 Claude、Cursor 等 AI Agent 直接调用。
 
 Inspired by [ICP_Query](https://github.com/HG-ha/ICP_Query)（Python 版）。
 
@@ -17,14 +17,6 @@ Inspired by [ICP_Query](https://github.com/HG-ha/ICP_Query)（Python 版）。
 <td><img width="696" alt="CLI 查询 baidu.com 备案信息" src="https://github.com/user-attachments/assets/179bce32-9272-495c-8c56-d3e79c9cb4b5" /></td>
 <td><img width="1341" alt="Claude 通过 MCP 工具查询 qq.com 备案" src="https://github.com/user-attachments/assets/3132d9ad-b1d7-4f1c-9835-ecdba4db5e3d" /></td>
 </tr>
-<tr>
-<td align="center"><b>Web UI</b></td>
-<td align="center"><b>AI Agent 查询小程序备案（MCP）</b></td>
-</tr>
-<tr>
-<td><img width="1264" alt="Web UI 界面展示" src="https://github.com/user-attachments/assets/fdccc5a3-5762-4d48-b30c-107c7a6f08cf" /></td>
-<td><img width="1554" alt="Claude 通过 MCP 工具查询腾讯小程序备案" src="https://github.com/user-attachments/assets/b0cc76ba-54a9-4292-8878-078bc3ac7b59" /></td>
-</tr>
 </table>
 
 
@@ -32,9 +24,7 @@ Inspired by [ICP_Query](https://github.com/HG-ha/ICP_Query)（Python 版）。
 
 - 单条/批量 ICP 备案查询
 - 违规域名、App、小程序、快应用查询
-- Web UI 界面，支持查询历史与 Excel/JSON 导出
 - **MCP Server** — AI Agent 可直接调用备案查询能力
-- **Claude Code Skill** — 内置 Skill 文件，配置即用
 - 代理池支持（本地 IPv6 / 隧道代理 / API 提取）
 - 自动验证码识别与重试
 - 纯 Go 实现，跨平台编译
@@ -57,7 +47,8 @@ go build -o icpcli .
 
 ```bash
 docker build -t icp-query .
-docker run -p 8080:8080 icp-query
+docker run icp-query              # 默认启动 MCP Server
+docker run icp-query query baidu.com  # CLI 模式
 ```
 
 ## 使用
@@ -100,18 +91,6 @@ icpcli batch -f domains.txt -t web
 # 指定并发数和自动翻页
 icpcli batch -f domains.txt -t web -j 10 --auto-page
 ```
-
-### Web UI
-
-```bash
-# 启动 Web 服务（默认端口 8080）
-icpcli serve
-
-# 指定端口和配置
-icpcli serve -p 8080 -c /path/to/config.yml
-```
-
-访问 `http://localhost:8080` 即可使用 Web 界面。
 
 ### 版本信息
 
@@ -157,27 +136,6 @@ MCP 提供以下工具：
 | `icp_query` | 备案查询，type: web/app/mapp/kapp |
 | `icp_blacklist` | 违规查询，type: bweb/bapp/bmapp/bkapp |
 | `config_show` | 查看当前配置 |
-
-### Claude Code Skill
-
-项目内置了 ICP 查询 skill，Claude Code 在项目目录下会自动识别。如需在其他项目中使用，将 `.claude/skills/icp-query/SKILL.md` 复制到目标项目的 `.claude/skills/icp-query/` 目录即可。
-
-## API
-
-Web 服务启动后提供以下 API：
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/query` | 单条查询 |
-| GET | `/api/history` | 查询历史列表 |
-| GET | `/api/history/:id` | 历史详情 |
-| DELETE | `/api/history/:id` | 删除历史 |
-| DELETE | `/api/history` | 清空所有历史 |
-| GET | `/api/batch` | 批量任务列表 |
-| POST | `/api/batch` | 创建批量任务 |
-| GET | `/api/batch/:name` | 批量任务详情 |
-| DELETE | `/api/batch/:name` | 删除批量任务 |
-| GET | `/api/config` | 当前配置 |
 
 ## 免责声明
 

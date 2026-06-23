@@ -19,6 +19,9 @@ CLAUDE.md
 .mcp.json
 Plans/
 
+# Qoder IDE
+.qoder/
+
 # IDE
 .idea/
 .vscode/

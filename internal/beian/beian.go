@@ -2,10 +2,13 @@ package beian
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"sync"
+	"time"
 
 	"github.com/imxw/icp-query-go/internal/config"
 	"github.com/imxw/icp-query-go/internal/netutil"
@@ -36,6 +39,7 @@ var queryTypes = map[int]int{
 type Beian struct {
 	cfg *config.Config
 
+	tokenMu     sync.RWMutex
 	token       string
 	tokenExpire int64 // unix milliseconds
 
@@ -45,6 +49,11 @@ type Beian struct {
 	blockedIPs         sync.Map
 
 	proxyPool *proxy.Pool
+
+	// Reusable HTTP transport for non-IPv6 requests.
+	// IPv6 requests create a cloned transport with a custom dialer.
+	httpTransport *http.Transport
+	httpClient    *http.Client
 }
 
 // New creates a new Beian instance.
@@ -59,6 +68,18 @@ func New(cfg *config.Config) *Beian {
 	if pool := proxy.NewPool(&cfg.Proxy.Pool); pool != nil {
 		b.proxyPool = pool
 		pool.Start()
+	}
+
+	// Shared HTTP transport for connection reuse
+	b.httpTransport = &http.Transport{
+		TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 30,
+		IdleConnTimeout:     90 * time.Second,
+	}
+	b.httpClient = &http.Client{
+		Transport: b.httpTransport,
+		Timeout:   time.Duration(cfg.Timeout) * time.Second,
 	}
 
 	return b

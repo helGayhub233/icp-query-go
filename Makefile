@@ -76,9 +76,9 @@ build-linux: cross-linux/amd64 cross-linux/arm64
 ## build-windows:  编译 Windows (amd64 + arm64)
 build-windows: cross-windows/amd64 cross-windows/arm64
 
-## run:            编译并运行 Web 服务
+## run:            编译并运行 MCP 服务
 run: build
-	./$(BINARY_OUT) serve
+	./$(BINARY_OUT) mcp
 
 ## lint:           代码检查
 lint:
@@ -93,6 +93,8 @@ test:
 	go test -race ./...
 
 ## docker:         构建 Docker 镜像
+##                 默认启动 MCP 服务，也可运行 CLI 命令:
+##                   docker run icp-query:$(VERSION) query baidu.com
 docker:
 	docker build -t icp-query:$(VERSION) .
 

@@ -25,10 +25,14 @@ func (b *Beian) getToken(ctx context.Context, proxy string) (string, map[string]
 		"Accept":     "application/json, text/plain, */*",
 	}
 
+	b.tokenMu.RLock()
 	if b.tokenExpire > time.Now().UnixMilli() {
+		token := b.token
+		b.tokenMu.RUnlock()
 		baseHeader["Cookie"] = fmt.Sprintf("__jsluid_s=%s", randomHex(32))
-		return b.token, baseHeader, nil
+		return token, baseHeader, nil
 	}
+	b.tokenMu.RUnlock()
 
 	ts := time.Now().UnixMilli()
 	authSecret := "testtest" + fmt.Sprintf("%d", ts)
@@ -59,8 +63,10 @@ func (b *Beian) getToken(ctx context.Context, proxy string) (string, map[string]
 	token := cast.ToString(params["bussiness"])
 	expire := cast.ToFloat64(params["expire"])
 
+	b.tokenMu.Lock()
 	b.token = token
 	b.tokenExpire = time.Now().UnixMilli() + int64(expire)
+	b.tokenMu.Unlock()
 
 	return token, baseHeader, nil
 }

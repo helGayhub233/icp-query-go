@@ -3,7 +3,6 @@ package beian
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -44,18 +43,12 @@ func (b *Beian) doPost(ctx context.Context, url string, body []byte, headers map
 }
 
 func (b *Beian) makeHTTPClient(proxy string) *http.Client {
-	transport := &http.Transport{
-		// InsecureSkipVerify: MIIT government site uses problematic certs
-		TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
-		MaxIdleConns:        100,
-		MaxIdleConnsPerHost: 30,
-		IdleConnTimeout:     30 * time.Second,
-	}
-
 	// Bind to local IPv6 if available and no proxy
 	if proxy == "" && len(b.localIPv6Addresses) > 0 {
 		if ipv6 := b.getNextIPv6(); ipv6 != "" {
-			transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			// Clone transport with custom dialer for IPv6 binding
+			ipv6Transport := b.httpTransport.Clone()
+			ipv6Transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 				d := net.Dialer{
 					LocalAddr: &net.TCPAddr{IP: net.ParseIP(ipv6)},
 					Timeout:   30 * time.Second,
@@ -63,14 +56,12 @@ func (b *Beian) makeHTTPClient(proxy string) *http.Client {
 				slog.Info("using local IPv6", "ip", ipv6)
 				return d.DialContext(ctx, network, addr)
 			}
+			return &http.Client{Transport: ipv6Transport, Timeout: b.httpClient.Timeout}
 		}
 	}
 
-	timeout := time.Duration(b.cfg.Timeout) * time.Second
-	return &http.Client{
-		Transport: transport,
-		Timeout:   timeout,
-	}
+	// Return the shared client for normal requests
+	return b.httpClient
 }
 
 // --- IPv6 rotation ---

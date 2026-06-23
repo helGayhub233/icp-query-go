@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"image"
 	"image/jpeg"
-	"io"
 	"sort"
 	"strings"
 
@@ -14,7 +13,7 @@ import (
 )
 
 // MatchSliderOffset finds the x-offset of the gap in a slider captcha.
-// smallImgB64 and bigImgB64 are base64-encoded JPEG images.
+// smallImgB64 and bigImgB64 are base64-encoded images (PNG or JPEG).
 // Returns (true, offset_x) on success, (false, 0) if no gap found.
 //
 // Algorithm:
@@ -161,6 +160,8 @@ func MatchSliderOffset(smallImgB64, bigImgB64 string) (bool, int, error) {
 }
 
 // decodeBase64Image decodes a base64 string into an image.Image.
+// Tries generic decode first (PNG is the primary format from MIIT),
+// falls back to JPEG-only decoder if the format is unrecognized.
 func decodeBase64Image(b64 string) (image.Image, error) {
 	// Strip data URI prefix if present (e.g. "data:image/png;base64,")
 	if idx := strings.Index(b64, ";base64,"); idx != -1 {
@@ -171,21 +172,19 @@ func decodeBase64Image(b64 string) (image.Image, error) {
 	if err != nil {
 		return nil, fmt.Errorf("base64 decode: %w", err)
 	}
-	img, err := jpeg.Decode(io.NopCloser(bytes.NewReader(data)))
-	if err != nil {
-		// Try generic decode (PNG, GIF, etc.)
-		img, err2 := decodeImage(data)
-		if err2 != nil {
-			return nil, fmt.Errorf("jpeg: %w, other: %w", err, err2)
-		}
+
+	// Try generic decode first — MIIT returns PNG images
+	img, _, err := image.Decode(bytes.NewReader(data))
+	if err == nil {
 		return img, nil
 	}
-	return img, nil
-}
 
-func decodeImage(data []byte) (image.Image, error) {
-	img, _, err := image.Decode(io.NopCloser(bytes.NewReader(data)))
-	return img, err
+	// Fallback to JPEG-only decoder
+	img, err = jpeg.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("image decode: %w", err)
+	}
+	return img, nil
 }
 
 // downsample2x reduces image dimensions by 2x.
