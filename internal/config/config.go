@@ -34,8 +34,8 @@ func DefaultConfig() *Config {
 		Concurrency: 5,
 		RateLimit: RateLimit{
 			Enabled:         true,
-			QueryPerMin:     10,
-			BlacklistPerMin: 5,
+			QueryPerMin:     5,
+			BlacklistPerMin: 3,
 		},
 		Proxy: Proxy{
 			Pool: Pool{
@@ -57,10 +57,10 @@ func (c *Config) Validate() error {
 		c.Proxy.Pool.Size = 100
 	}
 	if c.RateLimit.QueryPerMin <= 0 {
-		c.RateLimit.QueryPerMin = 10
+		c.RateLimit.QueryPerMin = 5
 	}
 	if c.RateLimit.BlacklistPerMin <= 0 {
-		c.RateLimit.BlacklistPerMin = 5
+		c.RateLimit.BlacklistPerMin = 3
 	}
 	return nil
 }

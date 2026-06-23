@@ -2,7 +2,6 @@ package mcpserver
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -41,9 +40,9 @@ func (rl *RateLimiter) Middleware() mcp.Middleware {
 				return next(ctx, method, req)
 			}
 
-			if !limiter.Allow() {
-				slog.Warn("rate limit exceeded", "tool", toolName)
-				return nil, fmt.Errorf("rate limit exceeded for %s, please retry later", toolName)
+			if err := limiter.Wait(ctx); err != nil {
+				slog.Warn("rate limit wait cancelled", "tool", toolName, "error", err)
+				return nil, err
 			}
 
 			return next(ctx, method, req)
