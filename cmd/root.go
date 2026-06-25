@@ -42,6 +42,7 @@ var envKeys = []string{
 	"rate_limit.enabled",
 	"rate_limit.query_per_min",
 	"rate_limit.blacklist_per_min",
+	"rate_limit.max_concurrent",
 	"proxy.tunnel",
 	"proxy.pool.url",
 	"proxy.pool.size",

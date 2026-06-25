@@ -10,6 +10,7 @@ rate_limit:
   enabled: true          # 是否启用限流
   query_per_min: 5      # icp_query 每分钟最大调用次数
   blacklist_per_min: 3  # icp_blacklist 每分钟最大调用次数
+  max_concurrent: 1     # MCP 查询工具最大并发数；1 表示串行执行，适合 IDE/Agent 突发调用
 
 proxy:
   tunnel: ""            # 隧道代理 URL，如 socks5://127.0.0.1:1080

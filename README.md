@@ -134,14 +134,15 @@ MCP 工具：
 | `icp_blacklist` | 违规查询，`type`: `bweb/bapp/bmapp/bkapp` |
 | `config_show` | 查看当前配置 |
 
-MCP 默认启用节流：
+MCP 默认启用节流和并发控制：
 
-| 工具 | 默认速率 |
-| --- | --- |
-| `icp_query` | 5 次/分钟 |
-| `icp_blacklist` | 3 次/分钟 |
+| 配置 | 默认值 | 说明 |
+| --- | --- | --- |
+| `rate_limit.query_per_min` | 5 | `icp_query` 每分钟最大调用次数 |
+| `rate_limit.blacklist_per_min` | 3 | `icp_blacklist` 每分钟最大调用次数 |
+| `rate_limit.max_concurrent` | 1 | MCP 查询工具最大并发数，默认串行执行 |
 
-连续调用时会排队等待，不会因为超过速率立即失败。
+连续调用时会排队等待，不会因为超过速率或并发上限立即失败。IDE/Agent 短时间多次调用 MCP 时，默认会等待上一个查询工具执行完成后再进入下一个。
 
 ## 配置
 
@@ -167,6 +168,7 @@ rate_limit:
   enabled: true
   query_per_min: 5
   blacklist_per_min: 3
+  max_concurrent: 1
 
 proxy:
   tunnel: ""

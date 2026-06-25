@@ -154,6 +154,7 @@ func (s *Server) handleConfigShow(_ context.Context, _ *mcp.CallToolRequest) (*m
 			"enabled":           s.cfg.RateLimit.Enabled,
 			"query_per_min":     s.cfg.RateLimit.QueryPerMin,
 			"blacklist_per_min": s.cfg.RateLimit.BlacklistPerMin,
+			"max_concurrent":    s.cfg.RateLimit.MaxConcurrent,
 		},
 		"proxy": map[string]any{
 			"tunnel": s.cfg.Proxy.Tunnel,

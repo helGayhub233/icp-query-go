@@ -14,6 +14,7 @@ type RateLimit struct {
 	Enabled         bool `mapstructure:"enabled"`           // 是否启用限流
 	QueryPerMin     int  `mapstructure:"query_per_min"`     // icp_query 每分钟上限
 	BlacklistPerMin int  `mapstructure:"blacklist_per_min"` // icp_blacklist 每分钟上限
+	MaxConcurrent   int  `mapstructure:"max_concurrent"`    // MCP 查询工具最大并发数
 }
 
 type Proxy struct {
@@ -36,6 +37,7 @@ func DefaultConfig() *Config {
 			Enabled:         true,
 			QueryPerMin:     5,
 			BlacklistPerMin: 3,
+			MaxConcurrent:   1,
 		},
 		Proxy: Proxy{
 			Pool: Pool{
@@ -61,6 +63,9 @@ func (c *Config) Validate() error {
 	}
 	if c.RateLimit.BlacklistPerMin <= 0 {
 		c.RateLimit.BlacklistPerMin = 3
+	}
+	if c.RateLimit.MaxConcurrent <= 0 {
+		c.RateLimit.MaxConcurrent = 1
 	}
 	return nil
 }
