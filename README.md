@@ -11,21 +11,11 @@
   <code>icpcli</code> 是一个纯 Go 实现的 ICP 备案查询工具，用于网站、App、小程序、快应用备案信息以及违规黑名单查询。
 </p>
 
-## 功能特性
-
-- 支持网站、App、小程序、快应用备案查询
-- 支持违规网站、违规 App、违规小程序、违规快应用查询
-- 支持批量查询、并发控制、自动翻页和 JSON 结果落盘
-- 本地 SQLite 记录批量查询历史
-- 提供 MCP Server，供 Claude、Cursor 等 AI Agent 调用
-- 支持配置文件、环境变量和代理配置
-- 单二进制分发，无需外部运行时
-
 ## 安装
 
-### 从 GitHub Release 下载
+### 下载二进制
 
-在 Releases 页面下载对应系统和架构的二进制文件：
+前往 [Releases](https://github.com/helGayhub233/icp-query-go/releases) 下载对应系统文件：
 
 ```bash
 # macOS / Linux
@@ -33,7 +23,7 @@ chmod +x icpcli-*
 ./icpcli-* version
 ```
 
-Windows 用户下载 `.exe` 文件后可直接运行。
+Windows 下载 `.exe` 后直接运行。
 
 ### 源码编译
 
@@ -44,14 +34,6 @@ go build -o icpcli .
 ./icpcli version
 ```
 
-### Makefile
-
-```bash
-make build      # 编译当前平台
-make build-all  # 编译 macOS/Linux/Windows 多平台产物到 dist/
-make test       # 运行测试
-```
-
 ### Docker
 
 ```bash
@@ -60,24 +42,37 @@ docker run --rm icp-query version
 docker run --rm icp-query query baidu.com
 ```
 
-## 快速开始
+## 快速使用
 
 ### 单条查询
 
 ```bash
 icpcli query baidu.com
+icpcli query -n baidu.com -t web
 icpcli query 微信 -t app
 icpcli query "北京百度网讯科技有限公司" -t mapp
 icpcli query baidu.com -t bweb
 ```
 
-也可以使用 `-n` 指定查询内容：
+查询结果默认输出格式化 JSON。
+
+### 批量查询
 
 ```bash
-icpcli query -n baidu.com -t web
+cat > domains.txt <<'EOF'
+baidu.com
+qq.com
+北京百度网讯科技有限公司
+EOF
+
+icpcli batch -f domains.txt -t web
+icpcli batch -f domains.txt -t web --auto-page -j 5
+icpcli batch -f domains.txt -t web --output-dir ./output
 ```
 
-查询结果默认以格式化 JSON 输出。
+批量结果会写入 JSON 文件，并记录到本地 `icp_history.db`。
+
+## 参数速查
 
 ### 查询类型
 
@@ -92,73 +87,84 @@ icpcli query -n baidu.com -t web
 | `bmapp` | 违规小程序 |
 | `bkapp` | 违规快应用 |
 
-### 批量查询
+### 常用命令
 
-准备一个文本文件，每行一个查询目标，空行和 `#` 开头的注释会被忽略：
+| 命令 | 说明 |
+| --- | --- |
+| `icpcli query <关键词>` | 查询网站备案，默认 `type=web` |
+| `icpcli query -n <关键词> -t <类型>` | 指定关键词和查询类型 |
+| `icpcli batch -f <文件> -t <类型>` | 批量查询，每行一个关键词 |
+| `icpcli batch --auto-page` | 批量查询时自动翻页 |
+| `icpcli batch -j 5` | 批量查询并发数，最大 20 |
+| `icpcli mcp` | 启动 MCP Server |
+| `icpcli version` | 查看版本 |
 
-```txt
-baidu.com
-qq.com
-北京百度网讯科技有限公司
-```
+### 配置项
 
-执行批量任务：
+| 配置 | 默认值 | 说明 |
+| --- | --- | --- |
+| `timeout` | `30` | HTTP 请求超时，单位秒 |
+| `concurrency` | `5` | 单次查询详情拉取并发数，最大 20 |
+| `rate_limit.enabled` | `true` | 是否启用 MCP 限流 |
+| `rate_limit.query_per_min` | `5` | `icp_query` 每分钟最大调用次数 |
+| `rate_limit.blacklist_per_min` | `3` | `icp_blacklist` 每分钟最大调用次数 |
+| `rate_limit.max_concurrent` | `1` | MCP 查询工具最大并发数，`1` 表示串行执行 |
+| `proxy.tunnel` | `""` | 固定代理地址，如 `socks5://127.0.0.1:1080` |
+| `proxy.pool.url` | `""` | 代理池 API 地址 |
+| `proxy.pool.size` | `100` | 代理池最大数量 |
+| `proxy.pool.ipv6` | `false` | 是否启用本地 IPv6 出口 |
 
-```bash
-icpcli batch -f domains.txt -t web
-icpcli batch -f domains.txt -t web --auto-page -j 5
-icpcli batch -f domains.txt -t web --output-dir ./output
-```
+## MCP 快速配置
 
-结果会写入 JSON 文件，并记录到本地 SQLite 数据库 `icp_history.db`。
-
-## MCP Server
-
-启动 MCP Server：
+### 启动服务
 
 ```bash
 icpcli mcp
 ```
 
-Claude Code 示例：
+### Claude Code
 
 ```bash
 claude mcp add icp-query -- icpcli mcp
 ```
 
-MCP 工具：
+### Cursor / Qoder / 其他 IDE
+
+将命令配置为：
+
+```json
+{
+  "mcpServers": {
+    "icp-query": {
+      "command": "icpcli",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+如需指定配置文件：
+
+```json
+{
+  "mcpServers": {
+    "icp-query": {
+      "command": "icpcli",
+      "args": ["-c", "/path/to/config.yml", "mcp"]
+    }
+  }
+}
+```
+
+### MCP 工具
 
 | 工具 | 说明 |
 | --- | --- |
 | `icp_query` | 备案查询，`type`: `web/app/mapp/kapp` |
-| `icp_blacklist` | 违规查询，`type`: `bweb/bapp/bmapp/bkapp` |
+| `icp_blacklist` | 违规黑名单查询，`type`: `bweb/bapp/bmapp/bkapp` |
 | `config_show` | 查看当前配置 |
 
-MCP 默认启用节流和并发控制：
-
-| 配置 | 默认值 | 说明 |
-| --- | --- | --- |
-| `rate_limit.query_per_min` | 5 | `icp_query` 每分钟最大调用次数 |
-| `rate_limit.blacklist_per_min` | 3 | `icp_blacklist` 每分钟最大调用次数 |
-| `rate_limit.max_concurrent` | 1 | MCP 查询工具最大并发数，默认串行执行 |
-
-连续调用时会排队等待，不会因为超过速率或并发上限立即失败。IDE/Agent 短时间多次调用 MCP 时，默认会等待上一个查询工具执行完成后再进入下一个。
-
-## 配置
-
-默认读取当前目录的 `config.yml`，也可以通过 `-c` 指定配置文件：
-
-```bash
-icpcli -c config.yml query baidu.com
-```
-
-可从 `config.example.yml` 复制一份配置：
-
-```bash
-cp config.example.yml config.yml
-```
-
-示例：
+### config.yml 快速复制
 
 ```yaml
 timeout: 30
@@ -178,41 +184,27 @@ proxy:
     ipv6: false
 ```
 
-环境变量使用 `ICP_` 前缀，例如：
+### 环境变量
+
+环境变量使用 `ICP_` 前缀，配置层级用 `_` 连接：
 
 ```bash
 ICP_RATE_LIMIT_QUERY_PER_MIN=10 icpcli mcp
+ICP_RATE_LIMIT_MAX_CONCURRENT=1 icpcli mcp
+ICP_PROXY_TUNNEL=socks5://127.0.0.1:1080 icpcli mcp
 ```
-
-## 版本信息
-
-```bash
-icpcli version
-icpcli version -o json
-```
-
-Release 构建会通过 `-ldflags` 注入版本号、Git commit 和构建时间。
 
 ## 开发
 
 ```bash
-go test ./...
-go vet ./...
 make build
-```
-
-发布前建议执行：
-
-```bash
-go test ./...
+make test
 make build-all
 ```
 
 ## 免责声明
 
-本项目仅供学习和技术研究使用，不得用于商业或非法用途。
-
-本项目通过非官方方式调用工信部 ICP 备案查询接口，接口行为可能变化，使用风险由使用者自行承担。
+本项目仅供学习和技术研究使用，不得用于商业或非法用途。项目通过非官方方式调用工信部 ICP 备案查询接口，接口行为可能变化，使用风险由使用者自行承担。
 
 ## License
 
